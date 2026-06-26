@@ -1983,11 +1983,14 @@ export default function LegacyLayout(props: ParentProps) {
           "border-l border-t border-border-weaker-base": merged(),
           "bg-background-base": !isWindowsMica && (merged() || hover()),
           "bg-background-stronger": !isWindowsMica && !merged() && !hover(),
-          "bg-transparent": isWindowsMica,
           "flex-1 min-w-0": panelProps.mobile,
           "max-w-full overflow-hidden": panelProps.mobile,
         }}
-        style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", width: panelProps.mobile ? undefined : `${panel()}px` } : { width: panelProps.mobile ? undefined : `${panel()}px` }}
+        style={
+          isWindowsMica
+            ? { background: "rgba(255,255,255,0.96)", backdropFilter: "blur(12px)", width: panelProps.mobile ? undefined : `${panel()}px` }
+            : { width: panelProps.mobile ? undefined : `${panel()}px` }
+        }
       >
         <Show
           when={project()}
@@ -2263,11 +2266,11 @@ export default function LegacyLayout(props: ParentProps) {
     <div
       data-component="app-shell"
       classList={{
-        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[12px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
+        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[8px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
         "bg-background-base": !isWindowsMica,
         "bg-transparent": isWindowsMica,
       }}
-      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent" } : undefined}
+      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", borderRadius: "8px", overflow: "hidden" } : undefined}
     >
       {autoselecting() ?? ""}
       <Titlebar update={titlebarUpdate} />

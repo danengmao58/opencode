@@ -385,24 +385,23 @@ render(() => {
   onMount(() => {
     document.addEventListener("click", handleClick)
     if (platform.platform === "desktop" && platform.os === "windows") {
+      const radius = "8px"
       document.documentElement.dataset.backgroundMaterial = "mica"
       document.documentElement.style.background = "transparent"
       document.documentElement.style.backgroundColor = "transparent"
-      document.documentElement.style.borderRadius = "28px"
-      document.documentElement.style.overflow = "hidden"
-      document.documentElement.style.clipPath = "inset(0 round 28px)"
+      document.documentElement.style.borderRadius = radius
       document.body.style.background = "transparent"
       document.body.style.backgroundColor = "transparent"
-      document.body.style.borderRadius = "28px"
+      document.body.style.borderRadius = radius
       document.body.style.overflow = "hidden"
-      document.body.style.clipPath = "inset(0 round 28px)"
       const root = document.getElementById("root")
       if (root) {
         root.style.background = "transparent"
         root.style.backgroundColor = "transparent"
-        root.style.borderRadius = "28px"
+        root.style.borderRadius = radius
         root.style.overflow = "hidden"
-        root.style.clipPath = "inset(0 round 28px)"
+        root.style.border = "1px solid rgba(0, 0, 0, 0.12)"
+        root.style.boxSizing = "border-box"
       }
       void window.api.setBackgroundMaterial(true).catch(() => undefined)
     }

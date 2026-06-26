@@ -38,11 +38,13 @@ export default function NewLayout(props: ParentProps) {
     <div
       data-component="app-shell"
       classList={{
-        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[12px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
+        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[8px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
         "bg-v2-background-bg-deep": !isWindowsMica,
         "bg-transparent": isWindowsMica,
       }}
-      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" } : {
+      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", borderRadius: "8px", overflow: "hidden", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" } : {
+        borderRadius: "8px",
+        overflow: "hidden",
         paddingTop: "env(safe-area-inset-top, 0px)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}

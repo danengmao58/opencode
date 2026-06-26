@@ -147,17 +147,16 @@
     --glass-bg: rgba(255, 255, 255, 0.12);
     --glass-border: rgba(255, 255, 255, 0.06);
     --glass-border-strong: rgba(255, 255, 255, 0.10);
+    --glass-window-border: rgba(0, 0, 0, 0.12);
     --glass-neon-glow: color-mix(in srgb, var(--v2-border-border-focus, #38bdf8) 30%, transparent);
     border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18) inset;
   }
 
   html[data-theme="glass"][data-color-scheme="dark"] {
     --glass-bg: rgba(255, 255, 255, 0.06);
     --glass-border: rgba(255, 255, 255, 0.04);
     --glass-border-strong: rgba(255, 255, 255, 0.07);
-    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.10) inset;
+    --glass-window-border: rgba(255, 255, 255, 0.08);
   }
 
   /* Make root and top containers transparent so Mica shows through */
@@ -167,9 +166,27 @@
     background: transparent !important;
   }
 
+  html[data-theme="glass"] body {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  html[data-theme="glass"] #root {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--glass-window-border);
+    box-sizing: border-box;
+  }
+
+  html[data-theme="glass"][data-color-scheme="dark"] #root {
+    border-color: var(--glass-window-border);
+  }
+
   /* The app container itself transparent — Mica visible behind header/sidebar */
   html[data-theme="glass"] [data-component="app-shell"] {
     background: transparent !important;
+    border-radius: 8px;
+    overflow: hidden;
   }
 
   /* Main content stays solid for readability */

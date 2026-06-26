@@ -10,6 +10,7 @@ import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore } from "./store"
 import { BACKGROUND_MATERIAL_KEY, PINCH_ZOOM_ENABLED_KEY } from "./store-keys"
 import { createUnresponsiveSampler } from "./unresponsive"
+import { getWindowCornerRadiusCss, getWindowsRoundedCornersConfig, WINDOW_CORNER_RADIUS_PX } from "./window-corners"
 
 const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
@@ -160,13 +161,9 @@ export function createMainWindow() {
     icon: iconPath(),
     ...(process.platform === "win32"
       ? {
-          frame: false,
-          transparent: true,
+          ...getWindowsRoundedCornersConfig(),
           titleBarStyle: "hidden" as const,
           titleBarOverlay: overlay({ mode }),
-          backgroundColor: "#00000000",
-          backgroundMaterial: "mica" as const,
-          roundedCorners: true,
         }
       : process.platform === "darwin"
         ? {

@@ -35,6 +35,7 @@ import { ServerSyncProvider, useServerSync } from "@/context/server-sync"
 import { GlobalProvider, useGlobal } from "@/context/global"
 import { HighlightsProvider } from "@/context/highlights"
 import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
+import { usePlatform } from "@/context/platform"
 import { LayoutProvider } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
 import { NotificationProvider } from "@/context/notification"
@@ -374,11 +375,12 @@ function DraftProviders(props: ParentProps) {
   )
 }
 
-export function AppBaseProviders(props: ParentProps<{ locale?: Locale }>) {
+export function AppBaseProviders(props: ParentProps<{ locale?: Locale; defaultTheme?: string }>) {
   return (
     <MetaProvider>
       <Font />
       <ThemeProvider
+        defaultTheme={props.defaultTheme}
         onThemeApplied={(_, mode) => {
           void window.api?.setTitlebar?.({ mode })
         }}
@@ -409,6 +411,7 @@ export function AppBaseProviders(props: ParentProps<{ locale?: Locale }>) {
 }
 
 function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
+  const platform = usePlatform()
   const server = useServer()
   const checkServerHealth = useCheckServerHealth()
 
@@ -442,7 +445,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
     <Show
       when={!checking()}
       fallback={
-        <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
+        <div class={`h-dvh w-screen flex flex-col items-center justify-center ${platform.platform === "desktop" && platform.os === "windows" ? "bg-transparent" : "bg-background-base"}`}>
           <Splash class="w-16 h-20 opacity-50 animate-pulse" />
         </div>
       }
@@ -459,6 +462,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
               server.setActive(key)
               void healthCheckActions.refetch()
             }}
+            isWindows={platform.platform === "desktop" && platform.os === "windows"}
           />
         }
       >
@@ -468,7 +472,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
   )
 }
 
-function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key: ServerConnection.Key) => void }) {
+function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key: ServerConnection.Key) => void; isWindows?: boolean }) {
   const language = useLanguage()
   const server = useServer()
   const others = () => server.list.filter((s) => ServerConnection.key(s) !== server.key)
@@ -479,8 +483,10 @@ function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key:
   const timer = setInterval(() => props.onRetry?.(), 1000)
   onCleanup(() => clearInterval(timer))
 
+  const wrapperClass = props.isWindows ? "bg-transparent" : "bg-background-base"
+
   return (
-    <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base gap-6 p-6">
+    <div class={`h-dvh w-screen flex flex-col items-center justify-center ${wrapperClass} gap-6 p-6`}>
       <div class="flex flex-col items-center max-w-md text-center">
         <Splash class="w-12 h-15 mb-4" />
         <p class="text-14-regular text-text-base">

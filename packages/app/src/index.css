@@ -140,4 +140,80 @@
       opacity: 1;
     }
   }
+
+  /* ── Glassmorphism theme ── */
+  html[data-theme="glass"] {
+    --glass-blur: 8px;
+    --glass-bg: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-border-strong: rgba(255, 255, 255, 0.10);
+    --glass-neon-glow: color-mix(in srgb, var(--v2-border-border-focus, #38bdf8) 30%, transparent);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18) inset;
+  }
+
+  html[data-theme="glass"][data-color-scheme="dark"] {
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.04);
+    --glass-border-strong: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.10) inset;
+  }
+
+  /* Make root and top containers transparent so Mica shows through */
+  html[data-theme="glass"],
+  html[data-theme="glass"] body,
+  html[data-theme="glass"] #root {
+    background: transparent !important;
+  }
+
+  /* The app container itself transparent — Mica visible behind header/sidebar */
+  html[data-theme="glass"] [data-component="app-shell"] {
+    background: transparent !important;
+  }
+
+  /* Main content stays solid for readability */
+  html[data-theme="glass"] main {
+    background: var(--v2-background-bg-deep) !important;
+  }
+
+  /* Titlebar — semi-transparent, shows Mica through */
+  html[data-theme="glass"] header {
+    background: var(--glass-bg);
+    border-bottom: 0.5px solid var(--glass-border);
+  }
+
+  /* Sidebar rail — semi-transparent, shows Mica through */
+  html[data-theme="glass"] [data-component="sidebar-rail"] {
+    background: var(--glass-bg);
+    border-right: 0.5px solid var(--glass-border);
+  }
+
+  /* Dropdown & menus — higher opacity for readability */
+  html[data-theme="glass"] [data-component="dropdown-menu-content"],
+  html[data-theme="glass"] [data-component="popover-content"] {
+    background: rgba(255, 255, 255, 0.97);
+    border: 0.5px solid var(--glass-border-strong);
+  }
+
+  html[data-theme="glass"][data-color-scheme="dark"] [data-component="dropdown-menu-content"],
+  html[data-theme="glass"][data-color-scheme="dark"] [data-component="popover-content"] {
+    background: rgba(24, 24, 28, 0.94);
+  }
+
+  /* Dialogs — higher opacity for readability */
+  html[data-theme="glass"] [data-component="dialog-content"] {
+    background: rgba(255, 255, 255, 0.97);
+    border: 0.5px solid var(--glass-border-strong);
+  }
+
+  html[data-theme="glass"][data-color-scheme="dark"] [data-component="dialog-content"] {
+    background: rgba(24, 24, 28, 0.94);
+  }
+
+  /* Neon accent glow in dark mode */
+  html[data-theme="glass"][data-color-scheme="dark"] [data-component="button-v2"][data-variant="accent"],
+  html[data-theme="glass"][data-color-scheme="dark"] [data-component="button-v2"][data-variant="contrast"] {
+    box-shadow: 0 0 12px -4px var(--glass-neon-glow);
+  }
 }

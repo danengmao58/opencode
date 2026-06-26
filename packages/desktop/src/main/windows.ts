@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
 import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore } from "./store"
-import { PINCH_ZOOM_ENABLED_KEY } from "./store-keys"
+import { BACKGROUND_MATERIAL_KEY, PINCH_ZOOM_ENABLED_KEY } from "./store-keys"
 import { createUnresponsiveSampler } from "./unresponsive"
 
 const root = dirname(fileURLToPath(import.meta.url))
@@ -59,6 +59,31 @@ export function setBackgroundColor(color: string) {
 
 export function getBackgroundColor(): string | undefined {
   return backgroundColor
+}
+
+export function setBackgroundMaterial(enabled: boolean) {
+  getStore().set(BACKGROUND_MATERIAL_KEY, enabled)
+  for (const win of BrowserWindow.getAllWindows()) {
+    updateBackgroundMaterial(win, enabled)
+  }
+}
+
+export function getBackgroundMaterialEnabled(): boolean {
+  return getStore().get(BACKGROUND_MATERIAL_KEY) === true
+}
+
+function updateBackgroundMaterial(win: BrowserWindow, enabled: boolean) {
+  if (process.platform === "win32") {
+    try {
+      win.setBackgroundMaterial(enabled ? "mica" : "none")
+    } catch {}
+    return
+  }
+  if (process.platform === "darwin" && enabled) {
+    win.setVibrancy("fullscreen-ui")
+    return
+  }
+  win.setVibrancy(null as any)
 }
 
 function iconsDir() {
@@ -133,20 +158,25 @@ export function createMainWindow() {
     autoHideMenuBar: true,
     title: "OpenCode",
     icon: iconPath(),
-    backgroundColor: backgroundColor ?? defaultBackgroundColor(),
-    ...(process.platform === "darwin"
-      ? {
-          titleBarStyle: "hidden" as const,
-          trafficLightPosition: { x: 12, y: 14 },
-        }
-      : {}),
     ...(process.platform === "win32"
       ? {
           frame: false,
+          transparent: true,
           titleBarStyle: "hidden" as const,
           titleBarOverlay: overlay({ mode }),
+          backgroundColor: "#00000000",
+          backgroundMaterial: "mica" as const,
+          roundedCorners: true,
         }
-      : {}),
+      : process.platform === "darwin"
+        ? {
+            titleBarStyle: "hidden" as const,
+            trafficLightPosition: { x: 12, y: 14 },
+            backgroundColor: backgroundColor ?? defaultBackgroundColor(),
+          }
+        : {
+            backgroundColor: backgroundColor ?? defaultBackgroundColor(),
+          }),
     webPreferences: {
       preload: join(root, "../preload/index.js"),
       contextIsolation: true,
@@ -176,6 +206,16 @@ export function createMainWindow() {
 
   win.once("ready-to-show", () => {
     win.show()
+    if (process.platform === "win32") {
+      setTimeout(() => {
+        try {
+          win.setBackgroundMaterial("mica")
+          writeLog("glass", "mica applied after show")
+        } catch (e) {
+          writeLog("glass", "mica failed after show", { error: String(e) }, "warn")
+        }
+      }, 0)
+    }
   })
 
   return win

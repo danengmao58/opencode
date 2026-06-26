@@ -10,6 +10,7 @@ import {
 import { ConstrainDragXAxis } from "@/utils/solid-dnd"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { usePlatform } from "@/context/platform"
 import { type LocalProject } from "@/context/layout"
 
 export const SidebarContent = (props: {
@@ -33,6 +34,8 @@ export const SidebarContent = (props: {
   renderPanel: () => JSX.Element
 }): JSX.Element => {
   const expanded = createMemo(() => !!props.mobile || props.opened())
+  const platform = usePlatform()
+  const isWindowsMica = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
   const placement = () => (props.mobile ? "bottom" : "right")
   let panel: HTMLDivElement | undefined
 
@@ -50,7 +53,11 @@ export const SidebarContent = (props: {
     <div class="flex h-full w-full min-w-0 overflow-hidden">
       <div
         data-component="sidebar-rail"
-        class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"
+        classList={{
+          "w-16 shrink-0 flex flex-col items-center overflow-hidden": true,
+          "bg-background-base": !isWindowsMica(),
+          "bg-transparent": isWindowsMica(),
+        }}
         onMouseMove={props.aimMove}
       >
         <div class="flex-1 min-h-0 w-full">

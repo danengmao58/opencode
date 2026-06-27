@@ -33,6 +33,7 @@ export interface SessionReviewTabProps {
   onFocusedCommentChange?: (focus: { file: string; id: string } | null) => void
   focusedFile?: string
   onScrollRef?: (el: HTMLDivElement | undefined) => void
+  actions?: JSX.Element
   commentMentions?: {
     items: (query: string) => string[] | Promise<string[]>
   }
@@ -157,6 +158,7 @@ export function SessionReviewTab(props: SessionReviewTabProps) {
       onDiffStyleChange={props.onDiffStyleChange}
       onViewFile={props.onViewFile}
       focusedFile={props.focusedFile}
+      actions={props.actions}
       readFile={readFile}
       onLineComment={props.onLineComment}
       onLineCommentUpdate={props.onLineCommentUpdate}

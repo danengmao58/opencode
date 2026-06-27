@@ -234,7 +234,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
           : undefined,
         "align-self": electronWindows() ? "flex-start" : undefined,
         background: electronWindows() && platform.os === "windows" ? "transparent" : undefined,
-        backgroundColor: electronWindows() && platform.os === "windows" ? "transparent" : undefined,
+        "background-color": electronWindows() && platform.os === "windows" ? "transparent" : undefined,
       }}
       data-tauri-drag-region
       onMouseDown={drag}

@@ -1565,7 +1565,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     style={{
                       width: "32px",
                       height: "32px",
-                      borderRadius: "9999px",
+                      "border-radius": "9999px",
                       "background-image":
                         "linear-gradient(180deg,var(--v2-alpha-light-20) 0%,var(--v2-alpha-light-0) 100%),linear-gradient(90deg,var(--v2-background-bg-contrast) 0%,var(--v2-background-bg-contrast) 100%)",
                     }}
@@ -1706,7 +1706,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       style={{
                         width: "32px",
                         height: "32px",
-                        borderRadius: "9999px",
+                        "border-radius": "9999px",
                       }}
                       aria-label={stopping() ? language.t("prompt.action.stop") : language.t("prompt.action.send")}
                     />

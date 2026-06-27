@@ -1,0 +1,1207 @@
+commit e3851826160433871c78e3f2ceb240ed44c35920
+Author: Thunderbird-35 <ycsun35@gmail.com>
+Date:   Fri Jun 26 18:09:30 2026 +0800
+
+    feat(desktop): add Windows 11 Mica glassmorphism theme
+
+diff --git a/packages/app/src/app.tsx b/packages/app/src/app.tsx
+index 569a6099c..dacfb0f2b 100644
+--- a/packages/app/src/app.tsx
++++ b/packages/app/src/app.tsx
+@@ -35,6 +35,7 @@ import { ServerSyncProvider, useServerSync } from "@/context/server-sync"
+ import { GlobalProvider, useGlobal } from "@/context/global"
+ import { HighlightsProvider } from "@/context/highlights"
+ import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
++import { usePlatform } from "@/context/platform"
+ import { LayoutProvider } from "@/context/layout"
+ import { ModelsProvider } from "@/context/models"
+ import { NotificationProvider } from "@/context/notification"
+@@ -374,11 +375,12 @@ function DraftProviders(props: ParentProps) {
+   )
+ }
+ 
+-export function AppBaseProviders(props: ParentProps<{ locale?: Locale }>) {
++export function AppBaseProviders(props: ParentProps<{ locale?: Locale; defaultTheme?: string }>) {
+   return (
+     <MetaProvider>
+       <Font />
+       <ThemeProvider
++        defaultTheme={props.defaultTheme}
+         onThemeApplied={(_, mode) => {
+           void window.api?.setTitlebar?.({ mode })
+         }}
+@@ -409,6 +411,7 @@ export function AppBaseProviders(props: ParentProps<{ locale?: Locale }>) {
+ }
+ 
+ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
++  const platform = usePlatform()
+   const server = useServer()
+   const checkServerHealth = useCheckServerHealth()
+ 
+@@ -442,7 +445,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
+     <Show
+       when={!checking()}
+       fallback={
+-        <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
++        <div class={`h-dvh w-screen flex flex-col items-center justify-center ${platform.platform === "desktop" && platform.os === "windows" ? "bg-transparent" : "bg-background-base"}`}>
+           <Splash class="w-16 h-20 opacity-50 animate-pulse" />
+         </div>
+       }
+@@ -459,6 +462,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
+               server.setActive(key)
+               void healthCheckActions.refetch()
+             }}
++            isWindows={platform.platform === "desktop" && platform.os === "windows"}
+           />
+         }
+       >
+@@ -468,7 +472,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean }>) {
+   )
+ }
+ 
+-function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key: ServerConnection.Key) => void }) {
++function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key: ServerConnection.Key) => void; isWindows?: boolean }) {
+   const language = useLanguage()
+   const server = useServer()
+   const others = () => server.list.filter((s) => ServerConnection.key(s) !== server.key)
+@@ -479,8 +483,10 @@ function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key:
+   const timer = setInterval(() => props.onRetry?.(), 1000)
+   onCleanup(() => clearInterval(timer))
+ 
++  const wrapperClass = props.isWindows ? "bg-transparent" : "bg-background-base"
++
+   return (
+-    <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base gap-6 p-6">
++    <div class={`h-dvh w-screen flex flex-col items-center justify-center ${wrapperClass} gap-6 p-6`}>
+       <div class="flex flex-col items-center max-w-md text-center">
+         <Splash class="w-12 h-15 mb-4" />
+         <p class="text-14-regular text-text-base">
+diff --git a/packages/app/src/components/prompt-input.tsx b/packages/app/src/components/prompt-input.tsx
+index f9a99aebb..7fc4399ab 100644
+--- a/packages/app/src/components/prompt-input.tsx
++++ b/packages/app/src/components/prompt-input.tsx
+@@ -1561,8 +1561,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
+                     tabIndex={store.mode === "normal" ? undefined : -1}
+                     icon={stopping() ? "stop" : store.mode === "shell" ? "arrow-undo-down" : "arrow-up"}
+                     variant="primary"
+-                    class="size-7 rounded-md p-[6px] text-v2-icon-icon-muted shadow-[var(--v2-elevation-button-contrast)] disabled:opacity-50"
++                    class="rounded-full p-[5px] text-v2-icon-icon-muted shadow-[var(--v2-elevation-button-contrast)] disabled:opacity-50"
+                     style={{
++                      width: "32px",
++                      height: "32px",
++                      borderRadius: "9999px",
+                       "background-image":
+                         "linear-gradient(180deg,var(--v2-alpha-light-20) 0%,var(--v2-alpha-light-0) 100%),linear-gradient(90deg,var(--v2-background-bg-contrast) 0%,var(--v2-background-bg-contrast) 100%)",
+                     }}
+@@ -1699,7 +1702,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
+                       tabIndex={store.mode === "normal" ? undefined : -1}
+                       icon={stopping() ? "stop" : store.mode === "shell" ? "arrow-undo-down" : "arrow-up"}
+                       variant="primary"
+-                      class="size-8"
++                      class="rounded-full p-[5px] text-v2-icon-icon-muted shadow-[var(--v2-elevation-button-contrast)] disabled:opacity-50"
++                      style={{
++                        width: "32px",
++                        height: "32px",
++                        borderRadius: "9999px",
++                      }}
+                       aria-label={stopping() ? language.t("prompt.action.stop") : language.t("prompt.action.send")}
+                     />
+                   </Tooltip>
+diff --git a/packages/app/src/components/titlebar.tsx b/packages/app/src/components/titlebar.tsx
+index 3e06787ce..69ae5f831 100644
+--- a/packages/app/src/components/titlebar.tsx
++++ b/packages/app/src/components/titlebar.tsx
+@@ -233,6 +233,8 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
+           ? `env(titlebar-area-width, calc(100vw - ${windowsControlsWidth()}))`
+           : undefined,
+         "align-self": electronWindows() ? "flex-start" : undefined,
++        background: electronWindows() && platform.os === "windows" ? "transparent" : undefined,
++        backgroundColor: electronWindows() && platform.os === "windows" ? "transparent" : undefined,
+       }}
+       data-tauri-drag-region
+       onMouseDown={drag}
+@@ -514,7 +516,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
+                 {/*<div class="h-full shrink-0" style={{ width: `${72 / zoom()}px` }} />*/}
+                 <div class="xl:hidden w-10 shrink-0 flex items-center justify-center">
+                   <IconButton
+-                    icon="menu"
++                    icon="sidebar-active"
+                     variant="ghost"
+                     class="titlebar-icon rounded-md"
+                     onClick={layout.mobileSidebar.toggle}
+@@ -526,7 +528,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
+               <Show when={!mac()}>
+                 <div class="xl:hidden w-[48px] shrink-0 flex items-center justify-center">
+                   <IconButton
+-                    icon="menu"
++                    icon="sidebar-active"
+                     variant="ghost"
+                     class="titlebar-icon rounded-md"
+                     onClick={layout.mobileSidebar.toggle}
+diff --git a/packages/app/src/index.css b/packages/app/src/index.css
+index 77982626a..aec3ffcf6 100644
+--- a/packages/app/src/index.css
++++ b/packages/app/src/index.css
+@@ -140,4 +140,80 @@
+       opacity: 1;
+     }
+   }
++
++  /* ── Glassmorphism theme ── */
++  html[data-theme="glass"] {
++    --glass-blur: 8px;
++    --glass-bg: rgba(255, 255, 255, 0.12);
++    --glass-border: rgba(255, 255, 255, 0.06);
++    --glass-border-strong: rgba(255, 255, 255, 0.10);
++    --glass-neon-glow: color-mix(in srgb, var(--v2-border-border-focus, #38bdf8) 30%, transparent);
++    border-radius: 8px;
++    overflow: hidden;
++    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18) inset;
++  }
++
++  html[data-theme="glass"][data-color-scheme="dark"] {
++    --glass-bg: rgba(255, 255, 255, 0.06);
++    --glass-border: rgba(255, 255, 255, 0.04);
++    --glass-border-strong: rgba(255, 255, 255, 0.07);
++    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.10) inset;
++  }
++
++  /* Make root and top containers transparent so Mica shows through */
++  html[data-theme="glass"],
++  html[data-theme="glass"] body,
++  html[data-theme="glass"] #root {
++    background: transparent !important;
++  }
++
++  /* The app container itself transparent — Mica visible behind header/sidebar */
++  html[data-theme="glass"] [data-component="app-shell"] {
++    background: transparent !important;
++  }
++
++  /* Main content stays solid for readability */
++  html[data-theme="glass"] main {
++    background: var(--v2-background-bg-deep) !important;
++  }
++
++  /* Titlebar — semi-transparent, shows Mica through */
++  html[data-theme="glass"] header {
++    background: var(--glass-bg);
++    border-bottom: 0.5px solid var(--glass-border);
++  }
++
++  /* Sidebar rail — semi-transparent, shows Mica through */
++  html[data-theme="glass"] [data-component="sidebar-rail"] {
++    background: var(--glass-bg);
++    border-right: 0.5px solid var(--glass-border);
++  }
++
++  /* Dropdown & menus — higher opacity for readability */
++  html[data-theme="glass"] [data-component="dropdown-menu-content"],
++  html[data-theme="glass"] [data-component="popover-content"] {
++    background: rgba(255, 255, 255, 0.97);
++    border: 0.5px solid var(--glass-border-strong);
++  }
++
++  html[data-theme="glass"][data-color-scheme="dark"] [data-component="dropdown-menu-content"],
++  html[data-theme="glass"][data-color-scheme="dark"] [data-component="popover-content"] {
++    background: rgba(24, 24, 28, 0.94);
++  }
++
++  /* Dialogs — higher opacity for readability */
++  html[data-theme="glass"] [data-component="dialog-content"] {
++    background: rgba(255, 255, 255, 0.97);
++    border: 0.5px solid var(--glass-border-strong);
++  }
++
++  html[data-theme="glass"][data-color-scheme="dark"] [data-component="dialog-content"] {
++    background: rgba(24, 24, 28, 0.94);
++  }
++
++  /* Neon accent glow in dark mode */
++  html[data-theme="glass"][data-color-scheme="dark"] [data-component="button-v2"][data-variant="accent"],
++  html[data-theme="glass"][data-color-scheme="dark"] [data-component="button-v2"][data-variant="contrast"] {
++    box-shadow: 0 0 12px -4px var(--glass-neon-glow);
++  }
+ }
+diff --git a/packages/app/src/pages/home.tsx b/packages/app/src/pages/home.tsx
+index 9f61713ef..36366de98 100644
+--- a/packages/app/src/pages/home.tsx
++++ b/packages/app/src/pages/home.tsx
+@@ -405,7 +405,7 @@ export function NewHome() {
+   }
+ 
+   return (
+-    <div class="rounded-[10px] shadow-[var(--v2-elevation-raised)] m-2 min-h-0 lg:overflow-hidden bg-v2-background-bg-base self-stretch flex-1">
++    <div class="rounded-[10px] border border-border-base shadow-[var(--v2-elevation-raised)] m-2 min-h-0 lg:overflow-hidden bg-v2-background-bg-base self-stretch flex-1">
+       <div class="mx-auto grid h-full w-full max-w-[1080px] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 px-3 pb-3 lg:grid-cols-[280px_minmax(0,720px)] lg:grid-rows-1 lg:gap-8 lg:px-6 lg:pb-16">
+         <HomeProjectColumn
+           projects={projects()}
+@@ -1317,7 +1317,7 @@ export function LegacyHome() {
+   }
+ 
+   return (
+-    <div class="mx-auto mt-55 w-full md:w-auto px-4">
++    <div class="mx-auto mt-55 w-full md:w-auto px-4 rounded-[10px] border border-border-base bg-v2-background-bg-base">
+       <Logo class="md:w-xl opacity-12" />
+       <Button
+         size="large"
+diff --git a/packages/app/src/pages/layout-new.tsx b/packages/app/src/pages/layout-new.tsx
+index f9222cdeb..378324d6f 100644
+--- a/packages/app/src/pages/layout-new.tsx
++++ b/packages/app/src/pages/layout-new.tsx
+@@ -32,12 +32,19 @@ export default function NewLayout(props: ParentProps) {
+     install: () => void platform.updater?.install(),
+   }
+ 
++  const isWindowsMica = platform.platform === "desktop" && platform.os === "windows"
++
+   return (
+     <div
+-      class="relative bg-v2-background-bg-deep flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text"
+-      style={{
+-        "padding-top": "env(safe-area-inset-top, 0px)",
+-        "padding-bottom": "env(safe-area-inset-bottom, 0px)",
++      data-component="app-shell"
++      classList={{
++        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[12px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
++        "bg-v2-background-bg-deep": !isWindowsMica,
++        "bg-transparent": isWindowsMica,
++      }}
++      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" } : {
++        paddingTop: "env(safe-area-inset-top, 0px)",
++        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+       }}
+     >
+       <Titlebar update={update} />
+diff --git a/packages/app/src/pages/layout.tsx b/packages/app/src/pages/layout.tsx
+index 31c59579b..c1c6ca12b 100644
+--- a/packages/app/src/pages/layout.tsx
++++ b/packages/app/src/pages/layout.tsx
+@@ -1976,18 +1976,18 @@ export default function LegacyLayout(props: ParentProps) {
+ 
+     return (
+       <div
++        data-component="sidebar-panel"
+         classList={{
+           "flex flex-col min-h-0 min-w-0 box-border rounded-tl-[12px] px-3": true,
+           "border border-b-0 border-border-weak-base": !merged(),
+           "border-l border-t border-border-weaker-base": merged(),
+-          "bg-background-base": merged() || hover(),
+-          "bg-background-stronger": !merged() && !hover(),
++          "bg-background-base": !isWindowsMica && (merged() || hover()),
++          "bg-background-stronger": !isWindowsMica && !merged() && !hover(),
++          "bg-transparent": isWindowsMica,
+           "flex-1 min-w-0": panelProps.mobile,
+           "max-w-full overflow-hidden": panelProps.mobile,
+         }}
+-        style={{
+-          width: panelProps.mobile ? undefined : `${panel()}px`,
+-        }}
++        style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", width: panelProps.mobile ? undefined : `${panel()}px` } : { width: panelProps.mobile ? undefined : `${panel()}px` }}
+       >
+         <Show
+           when={project()}
+@@ -2257,8 +2257,18 @@ export default function LegacyLayout(props: ParentProps) {
+     />
+   )
+ 
++  const isWindowsMica = platform.platform === "desktop" && platform.os === "windows"
++
+   return (
+-    <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
++    <div
++      data-component="app-shell"
++      classList={{
++        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[12px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
++        "bg-background-base": !isWindowsMica,
++        "bg-transparent": isWindowsMica,
++      }}
++      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent" } : undefined}
++    >
+       {autoselecting() ?? ""}
+       <Titlebar update={titlebarUpdate} />
+       <Show when={updateVersion() !== undefined}>
+@@ -2333,7 +2343,8 @@ export default function LegacyLayout(props: ParentProps) {
+                 aria-label={language.t("sidebar.nav.projectsAndSessions")}
+                 data-component="sidebar-nav-mobile"
+                 classList={{
+-                  "@container fixed top-10 bottom-0 left-0 z-50 w-full max-w-[400px] overflow-hidden border-r border-border-weaker-base bg-background-base transition-transform duration-200 ease-out": true,
++                  "@container fixed top-10 bottom-0 left-0 z-50 w-full max-w-[400px] overflow-hidden border-r border-border-weaker-base transition-transform duration-200 ease-out": true,
++                  "bg-[rgba(255,255,255,0.92)] backdrop-blur-[12px]": true,
+                   "translate-x-0": layout.mobileSidebar.opened(),
+                   "-translate-x-full": !layout.mobileSidebar.opened(),
+                 }}
+@@ -2357,8 +2368,11 @@ export default function LegacyLayout(props: ParentProps) {
+             >
+               <main
+                 classList={{
+-                  "size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base bg-background-base xl:border-l xl:rounded-tl-[12px]": true,
++                  "size-full overflow-hidden overflow-x-hidden flex flex-col items-start contain-strict border border-border-weak-base rounded-[12px]": true,
++                  "bg-background-base": !isWindowsMica,
++                  "bg-transparent": isWindowsMica,
+                 }}
++                style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent" } : undefined}
+               >
+                 <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
+                   {props.children}
+diff --git a/packages/app/src/pages/layout/sidebar-shell.tsx b/packages/app/src/pages/layout/sidebar-shell.tsx
+index ca36af2a4..9735b3da6 100644
+--- a/packages/app/src/pages/layout/sidebar-shell.tsx
++++ b/packages/app/src/pages/layout/sidebar-shell.tsx
+@@ -10,6 +10,7 @@ import {
+ import { ConstrainDragXAxis } from "@/utils/solid-dnd"
+ import { IconButton } from "@opencode-ai/ui/icon-button"
+ import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
++import { usePlatform } from "@/context/platform"
+ import { type LocalProject } from "@/context/layout"
+ 
+ export const SidebarContent = (props: {
+@@ -33,6 +34,8 @@ export const SidebarContent = (props: {
+   renderPanel: () => JSX.Element
+ }): JSX.Element => {
+   const expanded = createMemo(() => !!props.mobile || props.opened())
++  const platform = usePlatform()
++  const isWindowsMica = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
+   const placement = () => (props.mobile ? "bottom" : "right")
+   let panel: HTMLDivElement | undefined
+ 
+@@ -50,7 +53,11 @@ export const SidebarContent = (props: {
+     <div class="flex h-full w-full min-w-0 overflow-hidden">
+       <div
+         data-component="sidebar-rail"
+-        class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"
++        classList={{
++          "w-16 shrink-0 flex flex-col items-center overflow-hidden": true,
++          "bg-background-base": !isWindowsMica(),
++          "bg-transparent": isWindowsMica(),
++        }}
+         onMouseMove={props.aimMove}
+       >
+         <div class="flex-1 min-h-0 w-full">
+diff --git a/packages/app/src/pages/session/session-side-panel.tsx b/packages/app/src/pages/session/session-side-panel.tsx
+index 097df2219..5ee8db005 100644
+--- a/packages/app/src/pages/session/session-side-panel.tsx
++++ b/packages/app/src/pages/session/session-side-panel.tsx
+@@ -19,6 +19,7 @@ import { useCommand } from "@/context/command"
+ import { useFile, type SelectedLineRange } from "@/context/file"
+ import { useLanguage } from "@/context/language"
+ import { useLayout } from "@/context/layout"
++import { usePlatform } from "@/context/platform"
+ import { useSettings } from "@/context/settings"
+ import { useSync } from "@/context/sync"
+ import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
+@@ -57,6 +58,7 @@ export function SessionSidePanel(props: {
+   const sync = useSync()
+   const file = useFile()
+   const language = useLanguage()
++  const platform = usePlatform()
+   const command = useCommand()
+   const dialog = useDialog()
+   const { sessionKey, tabs, view, params } = useSessionLayout()
+@@ -73,6 +75,7 @@ export function SessionSidePanel(props: {
+         opened: layout.fileTree.opened(),
+       }),
+   )
++  const isWindowsMica = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
+   const open = createMemo(() => reviewOpen() || fileOpen())
+   const reviewTab = createMemo(() => isDesktop())
+   const panelWidth = createMemo(() => {
+@@ -216,18 +219,21 @@ export function SessionSidePanel(props: {
+     <Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id)}>
+       <aside
+         id="review-panel"
++        data-component="session-side-panel"
+         aria-label={language.t("session.panel.reviewAndFiles")}
+         aria-hidden={!open()}
+         inert={!open()}
+-        class="relative min-w-0 h-full flex shrink-0 overflow-hidden bg-background-base"
+         classList={{
++          "relative min-w-0 h-full flex shrink-0 overflow-hidden": true,
++          "bg-background-base": !isWindowsMica,
++          "bg-transparent": isWindowsMica,
+           "pointer-events-none": !open(),
+           "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
+             !props.size.active() && !props.reviewSnap,
+           "rounded-[10px] shadow-[var(--v2-elevation-raised)] overflow-hidden": settings.general.newLayoutDesigns(),
+           "flex-1": reviewOpen(),
+         }}
+-        style={{ width: panelWidth() }}
++        style={isWindowsMica ? { width: panelWidth(), background: "transparent", backgroundColor: "transparent" } : { width: panelWidth() }}
+       >
+         <Show when={open()}>
+           <div
+@@ -239,12 +245,14 @@ export function SessionSidePanel(props: {
+             <div
+               aria-hidden={!reviewOpen()}
+               inert={!reviewOpen()}
+-              class="relative min-w-0 h-full flex-1 overflow-hidden bg-background-base"
+               classList={{
++                "relative min-w-0 h-full flex-1 overflow-hidden": true,
++                "bg-background-base": !isWindowsMica,
++                "bg-transparent": isWindowsMica,
+                 "pointer-events-none": !reviewOpen(),
+               }}
+             >
+-              <div class="size-full min-w-0 h-full bg-background-base">
++              <div class={isWindowsMica() ? "size-full min-w-0 h-full bg-transparent" : "size-full min-w-0 h-full bg-background-base"}>
+                 <DragDropProvider
+                   onDragStart={handleDragStart}
+                   onDragEnd={handleDragEnd}
+diff --git a/packages/desktop/src/main/ipc.ts b/packages/desktop/src/main/ipc.ts
+index 4aaa64d25..c6c63464b 100644
+--- a/packages/desktop/src/main/ipc.ts
++++ b/packages/desktop/src/main/ipc.ts
+@@ -9,7 +9,7 @@ import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../prel
+ import { runDesktopMenuAction } from "./desktop-menu-actions"
+ import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
+ import { getStore } from "./store"
+-import { getPinchZoomEnabled, setPinchZoomEnabled, setTitlebar, updateTitlebar } from "./windows"
++import { getPinchZoomEnabled, setPinchZoomEnabled, setTitlebar, updateTitlebar, setBackgroundMaterial } from "./windows"
+ import type { UpdaterController } from "./updater-controller"
+ import { createUpdaterSubscriptions } from "./updater-subscriptions"
+ 
+@@ -220,6 +220,9 @@ export function registerIpcHandlers(deps: Deps) {
+   ipcMain.handle("set-pinch-zoom-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) => {
+     setPinchZoomEnabled(enabled)
+   })
++  ipcMain.handle("set-background-material", (_event: IpcMainInvokeEvent, enabled: boolean) => {
++    setBackgroundMaterial(enabled)
++  })
+   ipcMain.handle("set-titlebar", (event: IpcMainInvokeEvent, theme: TitlebarTheme) => {
+     const win = BrowserWindow.fromWebContents(event.sender)
+     if (!win) return
+diff --git a/packages/desktop/src/main/store-keys.ts b/packages/desktop/src/main/store-keys.ts
+index f05018a26..20c74f916 100644
+--- a/packages/desktop/src/main/store-keys.ts
++++ b/packages/desktop/src/main/store-keys.ts
+@@ -2,3 +2,4 @@ export const SETTINGS_STORE = "opencode.settings"
+ export const DEFAULT_SERVER_URL_KEY = "defaultServerUrl"
+ export const WSL_SERVERS_KEY = "wslServers"
+ export const PINCH_ZOOM_ENABLED_KEY = "pinchZoomEnabled"
++export const BACKGROUND_MATERIAL_KEY = "backgroundMaterial"
+diff --git a/packages/desktop/src/main/windows.ts b/packages/desktop/src/main/windows.ts
+index e0179f54c..ea0ec189c 100644
+--- a/packages/desktop/src/main/windows.ts
++++ b/packages/desktop/src/main/windows.ts
+@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
+ import type { TitlebarTheme } from "../preload/types"
+ import { exportDebugLogs, write as writeLog } from "./logging"
+ import { getStore } from "./store"
+-import { PINCH_ZOOM_ENABLED_KEY } from "./store-keys"
++import { BACKGROUND_MATERIAL_KEY, PINCH_ZOOM_ENABLED_KEY } from "./store-keys"
+ import { createUnresponsiveSampler } from "./unresponsive"
+ 
+ const root = dirname(fileURLToPath(import.meta.url))
+@@ -61,6 +61,31 @@ export function getBackgroundColor(): string | undefined {
+   return backgroundColor
+ }
+ 
++export function setBackgroundMaterial(enabled: boolean) {
++  getStore().set(BACKGROUND_MATERIAL_KEY, enabled)
++  for (const win of BrowserWindow.getAllWindows()) {
++    updateBackgroundMaterial(win, enabled)
++  }
++}
++
++export function getBackgroundMaterialEnabled(): boolean {
++  return getStore().get(BACKGROUND_MATERIAL_KEY) === true
++}
++
++function updateBackgroundMaterial(win: BrowserWindow, enabled: boolean) {
++  if (process.platform === "win32") {
++    try {
++      win.setBackgroundMaterial(enabled ? "mica" : "none")
++    } catch {}
++    return
++  }
++  if (process.platform === "darwin" && enabled) {
++    win.setVibrancy("fullscreen-ui")
++    return
++  }
++  win.setVibrancy(null as any)
++}
++
+ function iconsDir() {
+   return app.isPackaged ? join(process.resourcesPath, "icons") : join(root, "../../resources/icons")
+ }
+@@ -133,20 +158,25 @@ export function createMainWindow() {
+     autoHideMenuBar: true,
+     title: "OpenCode",
+     icon: iconPath(),
+-    backgroundColor: backgroundColor ?? defaultBackgroundColor(),
+-    ...(process.platform === "darwin"
+-      ? {
+-          titleBarStyle: "hidden" as const,
+-          trafficLightPosition: { x: 12, y: 14 },
+-        }
+-      : {}),
+     ...(process.platform === "win32"
+       ? {
+           frame: false,
++          transparent: true,
+           titleBarStyle: "hidden" as const,
+           titleBarOverlay: overlay({ mode }),
++          backgroundColor: "#00000000",
++          backgroundMaterial: "mica" as const,
++          roundedCorners: true,
+         }
+-      : {}),
++      : process.platform === "darwin"
++        ? {
++            titleBarStyle: "hidden" as const,
++            trafficLightPosition: { x: 12, y: 14 },
++            backgroundColor: backgroundColor ?? defaultBackgroundColor(),
++          }
++        : {
++            backgroundColor: backgroundColor ?? defaultBackgroundColor(),
++          }),
+     webPreferences: {
+       preload: join(root, "../preload/index.js"),
+       contextIsolation: true,
+@@ -176,6 +206,16 @@ export function createMainWindow() {
+ 
+   win.once("ready-to-show", () => {
+     win.show()
++    if (process.platform === "win32") {
++      setTimeout(() => {
++        try {
++          win.setBackgroundMaterial("mica")
++          writeLog("glass", "mica applied after show")
++        } catch (e) {
++          writeLog("glass", "mica failed after show", { error: String(e) }, "warn")
++        }
++      }, 0)
++    }
+   })
+ 
+   return win
+diff --git a/packages/desktop/src/preload/index.ts b/packages/desktop/src/preload/index.ts
+index a5cb1632e..416827829 100644
+--- a/packages/desktop/src/preload/index.ts
++++ b/packages/desktop/src/preload/index.ts
+@@ -115,6 +115,7 @@ const api: ElectronAPI = {
+   setTitlebar: (theme) => ipcRenderer.invoke("set-titlebar", theme),
+   runDesktopMenuAction: (action) => ipcRenderer.invoke("run-desktop-menu-action", action),
+   setBackgroundColor: (color: string) => ipcRenderer.invoke("set-background-color", color),
++  setBackgroundMaterial: (enabled: boolean) => ipcRenderer.invoke("set-background-material", enabled),
+   exportDebugLogs: () => ipcRenderer.invoke("export-debug-logs"),
+   recordFatalRendererError: (error) => ipcRenderer.invoke("record-fatal-renderer-error", error),
+ }
+diff --git a/packages/desktop/src/preload/types.ts b/packages/desktop/src/preload/types.ts
+index 6bb2e029c..290c37507 100644
+--- a/packages/desktop/src/preload/types.ts
++++ b/packages/desktop/src/preload/types.ts
+@@ -97,6 +97,7 @@ export type ElectronAPI = {
+   setTitlebar: (theme: TitlebarTheme) => Promise<void>
+   runDesktopMenuAction: (action: DesktopMenuAction) => Promise<void>
+   setBackgroundColor: (color: string) => Promise<void>
++  setBackgroundMaterial: (enabled: boolean) => Promise<void>
+   exportDebugLogs: () => Promise<string>
+   recordFatalRendererError: (error: FatalRendererError) => Promise<void>
+ }
+diff --git a/packages/desktop/src/renderer/index.html b/packages/desktop/src/renderer/index.html
+index b7c429fb6..f3488d8c6 100644
+--- a/packages/desktop/src/renderer/index.html
++++ b/packages/desktop/src/renderer/index.html
+@@ -1,5 +1,5 @@
+ <!doctype html>
+-<html lang="en" style="background-color: var(--background-base)">
++<html lang="en" style="background-color: transparent">
+   <head>
+     <meta charset="utf-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
+diff --git a/packages/desktop/src/renderer/index.tsx b/packages/desktop/src/renderer/index.tsx
+index c9bd050e7..e27c8d24e 100644
+--- a/packages/desktop/src/renderer/index.tsx
++++ b/packages/desktop/src/renderer/index.tsx
+@@ -317,10 +317,15 @@ render(() => {
+     menuTrigger = (id) => cmd.trigger(id)
+ 
+     const theme = useTheme()
++    const isWindowsMica = platform.platform === "desktop" && platform.os === "windows"
+ 
+     createEffect(() => {
+       theme.themeId()
+       theme.mode()
++      if (isWindowsMica) {
++        void window.api.setBackgroundColor("#00000000").catch(() => undefined)
++        return
++      }
+       const bg = getComputedStyle(document.documentElement).getPropertyValue("--background-base").trim()
+       if (bg) {
+         void window.api.setBackgroundColor(bg)
+@@ -332,8 +337,9 @@ render(() => {
+ 
+   function App() {
+     const wslServers = useWslServers()
++    const splashClass = platform.platform === "desktop" && platform.os === "windows" ? "bg-transparent" : "bg-background-base"
+     const splash = (
+-      <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
++      <div class={`h-dvh w-screen flex flex-col items-center justify-center ${splashClass}`}>
+         <Splash class="w-16 h-20 opacity-50 animate-pulse" />
+       </div>
+     )
+@@ -378,6 +384,28 @@ render(() => {
+ 
+   onMount(() => {
+     document.addEventListener("click", handleClick)
++    if (platform.platform === "desktop" && platform.os === "windows") {
++      document.documentElement.dataset.backgroundMaterial = "mica"
++      document.documentElement.style.background = "transparent"
++      document.documentElement.style.backgroundColor = "transparent"
++      document.documentElement.style.borderRadius = "28px"
++      document.documentElement.style.overflow = "hidden"
++      document.documentElement.style.clipPath = "inset(0 round 28px)"
++      document.body.style.background = "transparent"
++      document.body.style.backgroundColor = "transparent"
++      document.body.style.borderRadius = "28px"
++      document.body.style.overflow = "hidden"
++      document.body.style.clipPath = "inset(0 round 28px)"
++      const root = document.getElementById("root")
++      if (root) {
++        root.style.background = "transparent"
++        root.style.backgroundColor = "transparent"
++        root.style.borderRadius = "28px"
++        root.style.overflow = "hidden"
++        root.style.clipPath = "inset(0 round 28px)"
++      }
++      void window.api.setBackgroundMaterial(true).catch(() => undefined)
++    }
+     onCleanup(() => {
+       document.removeEventListener("click", handleClick)
+     })
+@@ -385,7 +413,10 @@ render(() => {
+ 
+   return (
+     <PlatformProvider value={platform}>
+-      <AppBaseProviders locale={locale.latest}>
++      <AppBaseProviders
++        locale={locale.latest}
++        defaultTheme={platform.platform === "desktop" && platform.os === "windows" ? "glass" : undefined}
++      >
+         <Show when={true}>{(_) => <App />}</Show>
+       </AppBaseProviders>
+     </PlatformProvider>
+diff --git a/packages/ui/src/theme/context.tsx b/packages/ui/src/theme/context.tsx
+index 1051345fb..d9dbc83ef 100644
+--- a/packages/ui/src/theme/context.tsx
++++ b/packages/ui/src/theme/context.tsx
+@@ -58,6 +58,7 @@ const names: Record<string, string> = {
+   everforest: "Everforest",
+   flexoki: "Flexoki",
+   github: "GitHub",
++  glass: "Glass",
+   gruvbox: "Gruvbox",
+   kanagawa: "Kanagawa",
+   "lucent-orng": "Lucent Orng",
+@@ -152,7 +153,11 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
+   ensureThemeStyleElement().textContent = fullCss
+   document.documentElement.dataset.theme = themeId
+   document.documentElement.dataset.colorScheme = mode
+-  document.documentElement.style.backgroundColor = isDark ? "#080808" : "#fafafa"
++  if (themeId === "glass") {
++    document.documentElement.style.backgroundColor = "transparent"
++  } else {
++    document.documentElement.style.backgroundColor = isDark ? "#080808" : "#fafafa"
++  }
+ 
+   // Update theme-color meta tag to match light/dark mode
+   const meta = document.querySelector('meta[name="theme-color"]')
+@@ -174,7 +179,8 @@ function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
+ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
+   name: "Theme",
+   init: (props: { defaultTheme?: string; onThemeApplied?: (theme: DesktopTheme, mode: "light" | "dark") => void }) => {
+-    const themeId = normalize(read(STORAGE_KEYS.THEME_ID) ?? props.defaultTheme) ?? "oc-2"
++    const defaultTheme = normalize(props.defaultTheme)
++    const themeId = defaultTheme ?? normalize(read(STORAGE_KEYS.THEME_ID)) ?? "oc-2"
+     const colorScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
+     const mode = colorScheme === "system" ? getSystemMode() : colorScheme
+     const [store, setStore] = createStore({
+@@ -260,9 +266,9 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
+       makeEventListener(mediaQuery, "change", onMedia)
+ 
+       const rawTheme = read(STORAGE_KEYS.THEME_ID)
+-      const savedTheme = normalize(rawTheme ?? props.defaultTheme) ?? "oc-2"
++      const savedTheme = normalize(props.defaultTheme ?? rawTheme) ?? "oc-2"
+       const savedScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
+-      if (rawTheme && rawTheme !== savedTheme) {
++      if (rawTheme && !props.defaultTheme && rawTheme !== savedTheme) {
+         write(STORAGE_KEYS.THEME_ID, savedTheme)
+         clear()
+       }
+diff --git a/packages/ui/src/theme/themes/glass.json b/packages/ui/src/theme/themes/glass.json
+new file mode 100644
+index 000000000..73a1312a6
+--- /dev/null
++++ b/packages/ui/src/theme/themes/glass.json
+@@ -0,0 +1,470 @@
++{
++  "$schema": "https://opencode.ai/desktop-theme.json",
++  "name": "Glass",
++  "id": "glass",
++  "light": {
++    "palette": {
++      "neutral": "#f5f5f7",
++      "ink": "#16161a",
++      "primary": "#0ea5e9",
++      "success": "#10b981",
++      "warning": "#f59e0b",
++      "error": "#ef4444",
++      "info": "#8b5cf6",
++      "interactive": "#0ea5e9",
++      "accent": "#a855f7",
++      "diffAdd": "#a7f3d0",
++      "diffDelete": "#fca5a5"
++    },
++    "overrides": {
++      "text-strong": "#16161a",
++      "text-base": "#63636b",
++      "text-weak": "#8e8e96",
++      "text-weaker": "#c7c7cd",
++      "border-weak-base": "#e2e2e6",
++      "border-weaker-base": "#eeeef0",
++      "icon-base": "#8e8e96",
++      "icon-weak-base": "#c7c7cd",
++      "surface-raised-base": "#f0f0f3",
++      "surface-raised-base-hover": "#ececf0",
++      "surface-base": "#f7f7f9",
++      "surface-base-hover": "#00000008",
++      "surface-interactive-weak": "#f0f7ff",
++      "icon-success-base": "#059669",
++      "surface-success-base": "#ecfdf5",
++      "syntax-comment": "#8e8e96",
++      "syntax-keyword": "#8b5cf6",
++      "syntax-string": "#0891b2",
++      "syntax-primitive": "#3b82f6",
++      "syntax-property": "#0ea5e9",
++      "syntax-type": "#d97706",
++      "syntax-constant": "#0891b2",
++      "syntax-critical": "#f59e0b",
++      "syntax-diff-delete": "#ef4444",
++      "syntax-diff-unknown": "#8b5cf6",
++      "surface-critical-base": "#fef2f2"
++    },
++    "v2Overrides": {
++      "v2-grey-50": "#ffffffff",
++      "v2-grey-100": "#fafafaff",
++      "v2-grey-200": "#f3f3f5ff",
++      "v2-grey-300": "#eeeeefff",
++      "v2-grey-400": "#dbdbe0ff",
++      "v2-grey-500": "#aeaeb3ff",
++      "v2-grey-600": "#808086ff",
++      "v2-grey-700": "#5c5c63ff",
++      "v2-grey-800": "#3a3a40ff",
++      "v2-grey-900": "#2e2e33ff",
++      "v2-grey-1000": "#242429ff",
++      "v2-grey-1100": "#16161aff",
++      "v2-grey-1200": "#0a0a0cff",
++      "v2-red-100": "#fcecebff",
++      "v2-red-200": "#f6d5d3ff",
++      "v2-red-300": "#f2bbb7ff",
++      "v2-red-400": "#f29b96ff",
++      "v2-red-500": "#f17471ff",
++      "v2-red-600": "#ef4444ff",
++      "v2-red-700": "#dc2626ff",
++      "v2-red-800": "#b91c1cff",
++      "v2-red-900": "#991b1bff",
++      "v2-red-1000": "#7f1d1dff",
++      "v2-red-1100": "#581c1cff",
++      "v2-red-1200": "#450a0aff",
++      "v2-orange-100": "#fff7edff",
++      "v2-orange-200": "#ffedd5ff",
++      "v2-orange-300": "#fed7aaff",
++      "v2-orange-400": "#fdba74ff",
++      "v2-orange-500": "#fb923cff",
++      "v2-orange-600": "#f97316ff",
++      "v2-orange-700": "#ea580cff",
++      "v2-orange-800": "#c2410cff",
++      "v2-orange-900": "#9a3412ff",
++      "v2-orange-1000": "#7c2d12ff",
++      "v2-orange-1100": "#5b1d0cff",
++      "v2-orange-1200": "#431407ff",
++      "v2-yellow-100": "#fefce8ff",
++      "v2-yellow-200": "#fef08aff",
++      "v2-yellow-300": "#fde047ff",
++      "v2-yellow-400": "#facc15ff",
++      "v2-yellow-500": "#eab308ff",
++      "v2-yellow-600": "#ca8a04ff",
++      "v2-yellow-700": "#a16207ff",
++      "v2-yellow-800": "#854d0eff",
++      "v2-yellow-900": "#713f12ff",
++      "v2-yellow-1000": "#633112ff",
++      "v2-yellow-1100": "#4a2407ff",
++      "v2-yellow-1200": "#3b1b04ff",
++      "v2-green-100": "#ecfdf5ff",
++      "v2-green-200": "#d1fae5ff",
++      "v2-green-300": "#a7f3d0ff",
++      "v2-green-400": "#6ee7b7ff",
++      "v2-green-500": "#34d399ff",
++      "v2-green-600": "#10b981ff",
++      "v2-green-700": "#059669ff",
++      "v2-green-800": "#047857ff",
++      "v2-green-900": "#065f46ff",
++      "v2-green-1000": "#064e3bff",
++      "v2-green-1100": "#04342aff",
++      "v2-green-1200": "#022c22ff",
++      "v2-cyan-100": "#ecfeffff",
++      "v2-cyan-200": "#cffafeff",
++      "v2-cyan-300": "#a5f3fcff",
++      "v2-cyan-400": "#67e8f9ff",
++      "v2-cyan-500": "#22d3eeff",
++      "v2-cyan-600": "#06b6d4ff",
++      "v2-cyan-700": "#0891b2ff",
++      "v2-cyan-800": "#0e7490ff",
++      "v2-cyan-900": "#155e75ff",
++      "v2-cyan-1000": "#164e63ff",
++      "v2-cyan-1100": "#113d4dff",
++      "v2-cyan-1200": "#0c303bff",
++      "v2-blue-100": "#eff6ffff",
++      "v2-blue-200": "#dbeafeff",
++      "v2-blue-300": "#bfdbfeff",
++      "v2-blue-400": "#93c5fdff",
++      "v2-blue-500": "#60a5faff",
++      "v2-blue-600": "#3b82f6ff",
++      "v2-blue-700": "#2563ebff",
++      "v2-blue-800": "#1d4ed8ff",
++      "v2-blue-900": "#1e40afff",
++      "v2-blue-1000": "#1e3a8aff",
++      "v2-blue-1100": "#172554ff",
++      "v2-blue-1200": "#1e1b4bff",
++      "v2-purple-100": "#f5f3ffff",
++      "v2-purple-200": "#ede9feff",
++      "v2-purple-300": "#ddd6feff",
++      "v2-purple-400": "#c4b5fdff",
++      "v2-purple-500": "#a78bfaff",
++      "v2-purple-600": "#8b5cf6ff",
++      "v2-purple-700": "#7c3aedff",
++      "v2-purple-800": "#6d28d9ff",
++      "v2-purple-900": "#5b21b6ff",
++      "v2-purple-1000": "#4c1d95ff",
++      "v2-purple-1100": "#3b0e72ff",
++      "v2-purple-1200": "#2e1065ff",
++      "v2-pink-100": "#fdf2f8ff",
++      "v2-pink-200": "#fce7f3ff",
++      "v2-pink-300": "#fbcfe8ff",
++      "v2-pink-400": "#f9a8d4ff",
++      "v2-pink-500": "#f472b6ff",
++      "v2-pink-600": "#ec4899ff",
++      "v2-pink-700": "#db2777ff",
++      "v2-pink-800": "#be185dff",
++      "v2-pink-900": "#9d174dff",
++      "v2-pink-1000": "#831843ff",
++      "v2-pink-1100": "#500724ff",
++      "v2-pink-1200": "#3b051aff",
++      "v2-background-bg-base": "var(--v2-grey-50)",
++      "v2-background-bg-deep": "var(--v2-grey-100)",
++      "v2-background-bg-layer-01": "var(--v2-grey-100)",
++      "v2-background-bg-layer-02": "var(--v2-grey-200)",
++      "v2-background-bg-layer-03": "var(--v2-grey-300)",
++      "v2-background-bg-layer-04": "var(--v2-grey-400)",
++      "v2-background-bg-inverse": "var(--v2-grey-1100)",
++      "v2-background-bg-contrast": "var(--v2-grey-1000)",
++      "v2-background-bg-button-neutral": "var(--v2-grey-50)",
++      "v2-background-bg-accent": "var(--v2-blue-600)",
++      "v2-text-text-base": "var(--v2-grey-1100)",
++      "v2-text-text-muted": "var(--v2-grey-700)",
++      "v2-text-text-faint": "var(--v2-grey-600)",
++      "v2-text-text-inverse": "var(--v2-grey-50)",
++      "v2-text-text-contrast": "var(--v2-grey-50)",
++      "v2-text-text-accent": "var(--v2-cyan-700)",
++      "v2-text-text-accent-hover": "var(--v2-cyan-800)",
++      "v2-icon-icon-base": "var(--v2-grey-800)",
++      "v2-icon-icon-muted": "var(--v2-grey-600)",
++      "v2-icon-icon-inverse": "var(--v2-grey-50)",
++      "v2-icon-icon-contrast": "var(--v2-grey-100)",
++      "v2-icon-icon-accent": "var(--v2-cyan-700)",
++      "v2-icon-icon-accent-hover": "var(--v2-cyan-800)",
++      "v2-border-border-muted": "var(--v2-alpha-dark-8)",
++      "v2-border-border-base": "var(--v2-alpha-dark-10)",
++      "v2-border-border-strong": "var(--v2-alpha-dark-20)",
++      "v2-border-border-inverse": "var(--v2-grey-1000)",
++      "v2-border-border-focus": "var(--v2-cyan-500)",
++      "v2-overlay-simple-overlay-hover": "var(--v2-alpha-dark-4)",
++      "v2-overlay-simple-overlay-pressed": "var(--v2-alpha-dark-8)",
++      "v2-overlay-simple-overlay-contrast-hover": "var(--v2-alpha-light-12)",
++      "v2-overlay-simple-overlay-contrast-pressed": "var(--v2-alpha-light-24)",
++      "v2-overlay-simple-overlay-scrim": "var(--v2-alpha-dark-40)",
++      "v2-overlay-gradient-depth-overlay-depth-top": "var(--v2-alpha-light-100)",
++      "v2-overlay-gradient-depth-overlay-depth-bot": "var(--v2-alpha-light-0)",
++      "v2-overlay-simple-tab-active-scrim": "#fafafa00",
++      "v2-overlay-simple-tab-hover-scrim": "#eeeeee00",
++      "v2-overlay-simple-tab-scrim": "#fafafa00",
++      "v2-state-bg-success": "var(--v2-green-100)",
++      "v2-state-fg-success": "var(--v2-green-800)",
++      "v2-state-border-success": "var(--v2-green-300)",
++      "v2-state-bg-warning": "var(--v2-yellow-100)",
++      "v2-state-fg-warning": "var(--v2-yellow-800)",
++      "v2-state-border-warning": "var(--v2-yellow-300)",
++      "v2-state-bg-danger": "var(--v2-red-100)",
++      "v2-state-fg-danger": "var(--v2-red-800)",
++      "v2-state-border-danger": "var(--v2-red-300)",
++      "v2-state-bg-info": "var(--v2-blue-100)",
++      "v2-state-fg-info": "var(--v2-blue-800)",
++      "v2-state-border-info": "var(--v2-blue-300)",
++      "v2-avatar-bg-orange": "#ee7330ff",
++      "v2-avatar-border-orange": "#d16427ff",
++      "v2-avatar-bg-yellow": "#e7af36ff",
++      "v2-avatar-border-yellow": "#cb9f34ff",
++      "v2-avatar-bg-cyan": "#0096b8ff",
++      "v2-avatar-border-cyan": "#007d9bff",
++      "v2-avatar-bg-green": "#2eaf5aff",
++      "v2-avatar-border-green": "#198b43ff",
++      "v2-avatar-bg-red": "#d92e3cff",
++      "v2-avatar-border-red": "#b82d35ff",
++      "v2-avatar-bg-pink": "#e4429eff",
++      "v2-avatar-border-pink": "#c83d8bff",
++      "v2-avatar-bg-blue": "#3250dfff",
++      "v2-avatar-border-blue": "#2c47c8ff",
++      "v2-avatar-bg-purple": "#623be2ff",
++      "v2-avatar-border-purple": "#5230c2ff",
++      "v2-avatar-bg-gray": "#5c5c5cff",
++      "v2-avatar-border-gray": "#3a3a3aff",
++      "v2-elevation-raised": "0px 2px 4px 0px var(--v2-alpha-dark-4), 0px 1px 2px -1px var(--v2-alpha-dark-8), 0px 0px 0px 0.5px var(--v2-alpha-dark-12), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
++      "v2-elevation-floating": "0px 8px 16px 0px var(--v2-alpha-dark-4), 0px 4px 8px 0px var(--v2-alpha-dark-8), 0px 0px 0px 0.5px var(--v2-alpha-dark-12), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
++      "v2-elevation-overlay": "0px 16px 32px 0px var(--v2-alpha-dark-6), 0px 8px 16px 0px var(--v2-alpha-dark-8), 0px 0px 0px 0.5px var(--v2-alpha-dark-12), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
++      "v2-elevation-button-neutral": "0px 1px 1.5px 0px var(--v2-alpha-dark-10), 0px 0px 0px 0.5px var(--v2-alpha-dark-14), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
++      "v2-elevation-button-contrast": "0px 1px 1.5px 0px var(--v2-alpha-dark-20), 0px 0px 0px 0.5px var(--v2-grey-800), inset 0px 1px 2px 0px var(--v2-alpha-light-14), inset 0px -1px 2px 0px var(--v2-alpha-dark-6), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
++      "v2-elevation-elements": "0px 0.5px 0.5px 0px var(--v2-alpha-dark-40)",
++      "v2-elevation-switch-off": "inset 0px 1px 1px 0px var(--v2-alpha-dark-8), inset 0px 0.5px 0.5px 0px var(--v2-alpha-dark-8), inset 0px 0px 0px 0.5px var(--v2-alpha-dark-10)",
++      "v2-elevation-switch-on": "inset 0px 2px 2px 0px var(--v2-alpha-dark-10), inset 0px 1px 1px 0px var(--v2-alpha-dark-10), inset 0px 0px 0px 0.5px var(--v2-alpha-dark-20)",
++      "v2-illustration-illustration-layer-01": "var(--v2-grey-300)",
++      "v2-illustration-illustration-layer-02": "var(--v2-grey-400)",
++      "v2-illustration-illustration-layer-03": "var(--v2-grey-500)"
++    }
++  },
++  "dark": {
++    "palette": {
++      "neutral": "#0d0d14",
++      "ink": "#e2e8f0",
++      "primary": "#38bdf8",
++      "success": "#34d399",
++      "warning": "#fbbf24",
++      "error": "#f87171",
++      "info": "#a78bfa",
++      "interactive": "#38bdf8",
++      "accent": "#c084fc",
++      "diffAdd": "#34d399",
++      "diffDelete": "#f87171"
++    },
++    "overrides": {
++      "text-strong": "#e2e8f0",
++      "text-base": "#94a3b8",
++      "text-weak": "#64748b",
++      "text-weaker": "#475569",
++      "border-weak-base": "#1e1e2e",
++      "border-weaker-base": "#191926",
++      "icon-base": "#64748b",
++      "icon-weak-base": "#334155",
++      "surface-raised-base": "#121220",
++      "surface-raised-base-hover": "#161630",
++      "surface-base": "#0d0d16",
++      "surface-base-hover": "#ffffff08",
++      "surface-interactive-weak": "#0f172a",
++      "surface-success-base": "#022c22",
++      "syntax-comment": "#64748b",
++      "syntax-keyword": "#c084fc",
++      "syntax-string": "#22d3ee",
++      "syntax-primitive": "#60a5fa",
++      "syntax-property": "#38bdf8",
++      "syntax-type": "#fbbf24",
++      "syntax-constant": "#67e8f9",
++      "syntax-critical": "#fbbf24",
++      "syntax-diff-delete": "#f87171",
++      "syntax-diff-unknown": "#c084fc",
++      "surface-critical-base": "#1f0603"
++    },
++    "v2Overrides": {
++      "v2-grey-50": "#ffffffff",
++      "v2-grey-100": "#fafafaff",
++      "v2-grey-200": "#f2f2f2ff",
++      "v2-grey-300": "#eeeeeeff",
++      "v2-grey-400": "#dbdbdbff",
++      "v2-grey-500": "#aeaeaeff",
++      "v2-grey-600": "#808080ff",
++      "v2-grey-700": "#5c5c5cff",
++      "v2-grey-800": "#3a3a3aff",
++      "v2-grey-900": "#2e2e2eff",
++      "v2-grey-1000": "#242424ff",
++      "v2-grey-1100": "#161616ff",
++      "v2-grey-1200": "#080808ff",
++      "v2-red-100": "#fcecebff",
++      "v2-red-200": "#f6d5d3ff",
++      "v2-red-300": "#f2bbb7ff",
++      "v2-red-400": "#f29b96ff",
++      "v2-red-500": "#f17471ff",
++      "v2-red-600": "#f87171ff",
++      "v2-red-700": "#dc2626ff",
++      "v2-red-800": "#b91c1cff",
++      "v2-red-900": "#991b1bff",
++      "v2-red-1000": "#7f1d1dff",
++      "v2-red-1100": "#581c1cff",
++      "v2-red-1200": "#450a0aff",
++      "v2-orange-100": "#fdf2edff",
++      "v2-orange-200": "#ffe7dcff",
++      "v2-orange-300": "#ffd8c6ff",
++      "v2-orange-400": "#ffc1a4ff",
++      "v2-orange-500": "#ffa478ff",
++      "v2-orange-600": "#ff8648ff",
++      "v2-orange-700": "#ee7330ff",
++      "v2-orange-800": "#d16427ff",
++      "v2-orange-900": "#b35624ff",
++      "v2-orange-1000": "#954c27ff",
++      "v2-orange-1100": "#723d22ff",
++      "v2-orange-1200": "#5a2c14ff",
++      "v2-yellow-100": "#fefaecff",
++      "v2-yellow-200": "#fcefd0ff",
++      "v2-yellow-300": "#f7e5b5ff",
++      "v2-yellow-400": "#f3da9bff",
++      "v2-yellow-500": "#f2cf76ff",
++      "v2-yellow-600": "#f6c251ff",
++      "v2-yellow-700": "#e7af36ff",
++      "v2-yellow-800": "#cb9f34ff",
++      "v2-yellow-900": "#ac8833ff",
++      "v2-yellow-1000": "#8e7231ff",
++      "v2-yellow-1100": "#68552bff",
++      "v2-yellow-1200": "#4b4025ff",
++      "v2-green-100": "#e7f9eaff",
++      "v2-green-200": "#d0f0d5ff",
++      "v2-green-300": "#b8e9c1ff",
++      "v2-green-400": "#96e3a6ff",
++      "v2-green-500": "#6bd586ff",
++      "v2-green-600": "#49c970ff",
++      "v2-green-700": "#2eaf5aff",
++      "v2-green-800": "#198b43ff",
++      "v2-green-900": "#1d783cff",
++      "v2-green-1000": "#196130ff",
++      "v2-green-1100": "#164c26ff",
++      "v2-green-1200": "#14361dff",
++      "v2-cyan-100": "#e2f7fbff",
++      "v2-cyan-200": "#c4edf4ff",
++      "v2-cyan-300": "#a3e4efff",
++      "v2-cyan-400": "#65d9ebff",
++      "v2-cyan-500": "#00c5dfff",
++      "v2-cyan-600": "#00abcfff",
++      "v2-cyan-700": "#0096b8ff",
++      "v2-cyan-800": "#007d9bff",
++      "v2-cyan-900": "#006c85ff",
++      "v2-cyan-1000": "#005a6eff",
++      "v2-cyan-1100": "#004756ff",
++      "v2-cyan-1200": "#00353fff",
++      "v2-blue-100": "#ecf1feff",
++      "v2-blue-200": "#d7e2fcff",
++      "v2-blue-300": "#c3d4fdff",
++      "v2-blue-400": "#a2bcffff",
++      "v2-blue-500": "#7698fdff",
++      "v2-blue-600": "#3b5cf6ff",
++      "v2-blue-700": "#3250dfff",
++      "v2-blue-800": "#2c47c8ff",
++      "v2-blue-900": "#263fa9ff",
++      "v2-blue-1000": "#22388fff",
++      "v2-blue-1100": "#1c2e70ff",
++      "v2-blue-1200": "#1b2852ff",
++      "v2-purple-100": "#ebecfeff",
++      "v2-purple-200": "#d5d5fcff",
++      "v2-purple-300": "#b9b8f5ff",
++      "v2-purple-400": "#9e99f7ff",
++      "v2-purple-500": "#8271f8ff",
++      "v2-purple-600": "#7152f4ff",
++      "v2-purple-700": "#623be2ff",
++      "v2-purple-800": "#5230c2ff",
++      "v2-purple-900": "#442aa1ff",
++      "v2-purple-1000": "#361f83ff",
++      "v2-purple-1100": "#2b1b6aff",
++      "v2-purple-1200": "#221358ff",
++      "v2-pink-100": "#fdecf3ff",
++      "v2-pink-200": "#f7d5e4ff",
++      "v2-pink-300": "#fabcd8ff",
++      "v2-pink-400": "#f799c6ff",
++      "v2-pink-500": "#f26cb2ff",
++      "v2-pink-600": "#f64aabff",
++      "v2-pink-700": "#e4429eff",
++      "v2-pink-800": "#c83d8bff",
++      "v2-pink-900": "#aa3576ff",
++      "v2-pink-1000": "#8c2d61ff",
++      "v2-pink-1100": "#6f284fff",
++      "v2-pink-1200": "#5c1d3fff",
++      "v2-background-bg-base": "var(--v2-grey-1100)",
++      "v2-background-bg-deep": "var(--v2-grey-1200)",
++      "v2-background-bg-layer-01": "var(--v2-grey-1000)",
++      "v2-background-bg-layer-02": "var(--v2-grey-900)",
++      "v2-background-bg-layer-03": "var(--v2-grey-800)",
++      "v2-background-bg-layer-04": "var(--v2-grey-700)",
++      "v2-background-bg-inverse": "var(--v2-grey-50)",
++      "v2-background-bg-contrast": "var(--v2-grey-700)",
++      "v2-background-bg-button-neutral": "var(--v2-alpha-light-6)",
++      "v2-background-bg-accent": "var(--v2-cyan-600)",
++      "v2-text-text-base": "var(--v2-grey-100)",
++      "v2-text-text-muted": "var(--v2-grey-500)",
++      "v2-text-text-faint": "var(--v2-grey-600)",
++      "v2-text-text-inverse": "var(--v2-grey-1100)",
++      "v2-text-text-contrast": "var(--v2-grey-50)",
++      "v2-text-text-accent": "var(--v2-cyan-400)",
++      "v2-text-text-accent-hover": "var(--v2-cyan-300)",
++      "v2-icon-icon-base": "var(--v2-grey-400)",
++      "v2-icon-icon-muted": "var(--v2-grey-600)",
++      "v2-icon-icon-inverse": "var(--v2-grey-1100)",
++      "v2-icon-icon-contrast": "var(--v2-grey-100)",
++      "v2-icon-icon-accent": "var(--v2-cyan-400)",
++      "v2-icon-icon-accent-hover": "var(--v2-cyan-300)",
++      "v2-border-border-muted": "var(--v2-alpha-light-8)",
++      "v2-border-border-base": "var(--v2-alpha-light-10)",
++      "v2-border-border-strong": "var(--v2-alpha-light-20)",
++      "v2-border-border-inverse": "var(--v2-grey-100)",
++      "v2-border-border-focus": "var(--v2-cyan-500)",
++      "v2-overlay-simple-overlay-hover": "var(--v2-alpha-light-6)",
++      "v2-overlay-simple-overlay-pressed": "var(--v2-alpha-light-10)",
++      "v2-overlay-simple-overlay-contrast-hover": "var(--v2-alpha-dark-24)",
++      "v2-overlay-simple-overlay-contrast-pressed": "var(--v2-alpha-dark-40)",
++      "v2-overlay-simple-overlay-scrim": "var(--v2-alpha-dark-60)",
++      "v2-overlay-gradient-depth-overlay-depth-top": "var(--v2-alpha-light-100)",
++      "v2-overlay-gradient-depth-overlay-depth-bot": "var(--v2-alpha-light-0)",
++      "v2-overlay-simple-tab-active-scrim": "#24242400",
++      "v2-overlay-simple-tab-hover-scrim": "#3a3a3a00",
++      "v2-overlay-simple-tab-scrim": "#08080800",
++      "v2-state-bg-success": "var(--v2-green-1200)",
++      "v2-state-fg-success": "var(--v2-green-500)",
++      "v2-state-border-success": "var(--v2-green-900)",
++      "v2-state-bg-warning": "var(--v2-yellow-1200)",
++      "v2-state-fg-warning": "var(--v2-yellow-500)",
++      "v2-state-border-warning": "var(--v2-yellow-900)",
++      "v2-state-bg-danger": "var(--v2-red-1200)",
++      "v2-state-fg-danger": "var(--v2-red-500)",
++      "v2-state-border-danger": "var(--v2-red-900)",
++      "v2-state-bg-info": "var(--v2-blue-1200)",
++      "v2-state-fg-info": "var(--v2-blue-500)",
++      "v2-state-border-info": "var(--v2-blue-900)",
++      "v2-avatar-bg-orange": "#723d22ff",
++      "v2-avatar-border-orange": "#ff8648ff",
++      "v2-avatar-bg-yellow": "#68552bff",
++      "v2-avatar-border-yellow": "#e7af36ff",
++      "v2-avatar-bg-cyan": "#005a6eff",
++      "v2-avatar-border-cyan": "#0096b8ff",
++      "v2-avatar-bg-green": "#196130ff",
++      "v2-avatar-border-green": "#49c970ff",
++      "v2-avatar-bg-red": "#7a1f23ff",
++      "v2-avatar-border-red": "#d92e3cff",
++      "v2-avatar-bg-pink": "#8c2d61ff",
++      "v2-avatar-border-pink": "#e4429eff",
++      "v2-avatar-bg-blue": "#263fa9ff",
++      "v2-avatar-border-blue": "#7698fdff",
++      "v2-avatar-bg-purple": "#361f83ff",
++      "v2-avatar-border-purple": "#7152f4ff",
++      "v2-avatar-bg-gray": "#5c5c5cff",
++      "v2-avatar-border-gray": "#aeaeaeff",
++      "v2-elevation-raised": "0px 2px 4px 0px var(--v2-alpha-dark-30), 0px 1px 2px 0px var(--v2-alpha-dark-30), 0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6)",
++      "v2-elevation-floating": "0px 8px 16px 0px var(--v2-alpha-dark-30), 0px 4px 8px 0px var(--v2-alpha-dark-30), 0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6)",
++      "v2-elevation-overlay": "0px 16px 32px 0px var(--v2-alpha-dark-40), 0px 8px 16px 0px var(--v2-alpha-dark-30), 0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6)",
++      "v2-elevation-button-neutral": "0px 1px 2px 0px var(--v2-alpha-dark-40), 0px 0px 0px 0.5px var(--v2-alpha-light-20), 0px -0.5px 0px 0px var(--v2-alpha-light-10)",
++      "v2-elevation-button-contrast": "0px 1px 2px 0px var(--v2-alpha-dark-40), 0px 0px 0px 0.5px var(--v2-alpha-light-40), inset 0px 0px 0px 0px var(--v2-alpha-light-0), inset 0px 0px 0px 0px var(--v2-alpha-light-0), 0px -0.5px 0px 0px var(--v2-alpha-light-30)",
++      "v2-elevation-elements": "0px 0.5px 0.5px 0px var(--v2-alpha-dark-40)",
++      "v2-elevation-switch-off": "inset 0px -0.5px 0px 0px var(--v2-alpha-light-10), inset 0px 0px 0px 0px var(--v2-alpha-light-0), inset 0px 0px 0px 0.5px var(--v2-alpha-light-16)",
++      "v2-elevation-switch-on": "inset 0px -0.5px 0px 0px var(--v2-alpha-light-10), inset 0px 0px 0px 0px var(--v2-alpha-light-0), inset 0px 0px 0px 0.5px var(--v2-alpha-light-16)",
++      "v2-illustration-illustration-layer-01": "var(--v2-grey-900)",
++      "v2-illustration-illustration-layer-02": "var(--v2-grey-800)",
++      "v2-illustration-illustration-layer-03": "var(--v2-grey-700)"
++    }
++  }
++}

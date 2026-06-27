@@ -193,6 +193,7 @@ const files = Effect.fnUntraced(function* (
       additions: stat?.additions ?? 0,
       deletions: stat?.deletions ?? 0,
       status: item.status,
+      code: item.code,
     })
   }
 
@@ -245,6 +246,7 @@ export type Info = Schema.Schema.Type<typeof Info>
 
 export const FileDiff = Schema.Struct({
   file: Schema.String,
+  code: Schema.optional(Schema.String),
   // Mirrors Snapshot.FileDiff (see #26574). The current producer always
   // populates patch, but loosening matches the sibling schema so a
   // future code path that omits it can't crash /instance/vcs/diff.

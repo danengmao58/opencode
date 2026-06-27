@@ -98,6 +98,57 @@ const kind = (code: string): Kind => {
   return "modified"
 }
 
+const isRenameOrCopy = (code: string) => code.startsWith("R") || code.startsWith("C")
+
+const parseNameStatus = (list: string[]) => {
+  const out: Item[] = []
+  for (let idx = 0; idx < list.length; idx++) {
+    const code = list[idx]
+    if (!code) continue
+
+    if (isRenameOrCopy(code)) {
+      const file = list[idx + 2]
+      if (!file) break
+      out.push({ file, code, status: kind(code) })
+      idx += 2
+      continue
+    }
+
+    const file = list[idx + 1]
+    if (!file) break
+    out.push({ file, code, status: kind(code) })
+    idx += 1
+  }
+  return out
+}
+
+const parseStatus = (list: string[]) => {
+  const out: Item[] = []
+  for (let idx = 0; idx < list.length; idx++) {
+    const item = list[idx]
+    if (!item || item.length < 3) continue
+
+    const code = item.slice(0, 2)
+    const file = item.slice(3)
+    if (isRenameOrCopy(code)) {
+      if (file) {
+        out.push({ file, code, status: kind(code) })
+        idx += 1
+        continue
+      }
+      const next = list[idx + 1]
+      if (!next) break
+      out.push({ file: next, code, status: kind(code) })
+      idx += 1
+      continue
+    }
+
+    if (!file) continue
+    out.push({ file, code, status: kind(code) })
+  }
+  return out
+}
+
 export class Service extends Context.Service<Service, Interface>()("@opencode/Git") {}
 
 export const layer = Layer.effect(
@@ -213,33 +264,25 @@ export const layer = Layer.effect(
     })
 
     const status = Effect.fn("Git.status")(function* (cwd: string) {
-      return nuls(
-        yield* text(["status", "--porcelain=v1", "--untracked-files=all", "--no-renames", "-z", "--", "."], {
-          cwd,
-        }),
-      ).flatMap((item) => {
-        const file = item.slice(3)
-        if (!file) return []
-        const code = item.slice(0, 2)
-        return [{ file, code, status: kind(code) } satisfies Item]
-      })
+      return parseStatus(
+        nuls(
+          yield* text(["status", "--porcelain=v1", "--untracked-files=all", "-z", "--", "."], {
+            cwd,
+          }),
+        ),
+      )
     })
 
     const diff = Effect.fn("Git.diff")(function* (cwd: string, ref: string) {
       const list = nuls(
-        yield* text(["diff", "--no-ext-diff", "--no-renames", "--name-status", "-z", ref, "--", "."], { cwd }),
+        yield* text(["diff", "--no-ext-diff", "--name-status", "-z", ref, "--", "."], { cwd }),
       )
-      return list.flatMap((code, idx) => {
-        if (idx % 2 !== 0) return []
-        const file = list[idx + 1]
-        if (!code || !file) return []
-        return [{ file, code, status: kind(code) } satisfies Item]
-      })
+      return parseNameStatus(list)
     })
 
     const stats = Effect.fn("Git.stats")(function* (cwd: string, ref: string) {
       return nuls(
-        yield* text(["diff", "--no-ext-diff", "--no-renames", "--numstat", "-z", ref, "--", "."], { cwd }),
+        yield* text(["diff", "--no-ext-diff", "--numstat", "-z", ref, "--", "."], { cwd }),
       ).flatMap((item) => {
         const a = item.indexOf("\t")
         const b = item.indexOf("\t", a + 1)
@@ -262,7 +305,7 @@ export const layer = Layer.effect(
 
     const patch = Effect.fn("Git.patch")(function* (cwd: string, ref: string, file: string, options?: PatchOptions) {
       const result = yield* run(
-        ["diff", "--patch", "--no-ext-diff", "--no-renames", `--unified=${options?.context ?? 3}`, ref, "--", file],
+        ["diff", "--patch", "--no-ext-diff", `--unified=${options?.context ?? 3}`, ref, "--", file],
         { cwd, maxOutputBytes: options?.maxOutputBytes },
       )
       return { text: result.truncated ? "" : result.text(), truncated: result.truncated } satisfies Patch
@@ -270,7 +313,7 @@ export const layer = Layer.effect(
 
     const patchAll = Effect.fn("Git.patchAll")(function* (cwd: string, ref: string, options?: PatchOptions) {
       const result = yield* run(
-        ["diff", "--patch", "--no-ext-diff", "--no-renames", `--unified=${options?.context ?? 3}`, ref, "--", "."],
+        ["diff", "--patch", "--no-ext-diff", `--unified=${options?.context ?? 3}`, ref, "--", "."],
         { cwd, maxOutputBytes: options?.maxOutputBytes },
       )
       return { text: result.text(), truncated: result.truncated } satisfies Patch
@@ -287,7 +330,6 @@ export const layer = Layer.effect(
           "--no-index",
           "--patch",
           "--no-ext-diff",
-          "--no-renames",
           `--unified=${options?.context ?? 3}`,
           "--",
           "/dev/null",

@@ -260,6 +260,32 @@ describe("Vcs diff", () => {
   )
 
   it.instance(
+    "diff('git') exposes renamed files as modified/added with rename metadata",
+    () =>
+      Effect.gen(function* () {
+        const test = yield* TestInstance
+        yield* write(path.join(test.directory, "old.txt"), "hello\n")
+        yield* git(test.directory, ["add", "old.txt"])
+        yield* git(test.directory, ["commit", "--no-gpg-sign", "-m", "add old"])
+        yield* git(test.directory, ["mv", "old.txt", "new.txt"])
+
+        const vcs = yield* init()
+        const diff = yield* vcs.diff("git")
+
+        expect(diff).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              file: "new.txt",
+              status: "modified",
+              code: expect.stringMatching(/^R|^C/),
+            }),
+          ]),
+        )
+      }),
+    { git: true },
+  )
+
+  it.instance(
     "diff('git') keeps batched patches aligned for type changes",
     () =>
       Effect.gen(function* () {

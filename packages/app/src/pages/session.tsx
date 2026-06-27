@@ -402,6 +402,22 @@ export default function Page() {
     }
   })
   const refreshVcs = debounce(() => void queryClient.invalidateQueries({ queryKey: vcsKey() }), 100)
+  const refreshReviewVcs = () => {
+    if (store.changes !== "git" && store.changes !== "branch") return
+    refreshVcs()
+  }
+  const reviewDiffActions = () =>
+    (store.changes === "git" || store.changes === "branch") && sync().project?.vcs === "git" ? (
+      <Button
+        size="small"
+        variant="ghost"
+        disabled={vcsQuery.isPending}
+        onClick={refreshReviewVcs}
+      >
+        Refresh
+      </Button>
+    ) : undefined
+
   const reviewDiffs = () => {
     if (store.changes === "git" || store.changes === "branch")
       // avoids suspense
@@ -816,15 +832,27 @@ export default function Page() {
     }
 
     return (
-      <Select
-        options={changesOptions()}
-        current={store.changes}
-        label={label}
-        onSelect={(option) => option && setStore("changes", option)}
-        variant="ghost"
-        size="small"
-        valueClass="text-14-medium"
-      />
+      <div class="flex items-center gap-2">
+        <Select
+          options={changesOptions()}
+          current={store.changes}
+          label={label}
+          onSelect={(option) => option && setStore("changes", option)}
+          variant="ghost"
+          size="small"
+          valueClass="text-14-medium"
+        />
+        {(store.changes === "git" || store.changes === "branch") && sync().project?.vcs === "git" ? (
+          <Button
+            size="small"
+            variant="ghost"
+            disabled={vcsQuery.isPending}
+            onClick={() => void refreshVcs()}
+          >
+            Refresh
+          </Button>
+        ) : null}
+      </div>
     )
   }
 
@@ -903,6 +931,7 @@ export default function Page() {
         onFocusedCommentChange={comments.setFocus}
         onViewFile={openReviewFile}
         classes={input.classes}
+        actions={reviewDiffActions()}
       />
     </Show>
   )

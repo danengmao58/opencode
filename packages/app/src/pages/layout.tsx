@@ -1983,12 +1983,13 @@ export default function LegacyLayout(props: ParentProps) {
           "border-l border-t border-border-weaker-base": merged(),
           "bg-background-base": !isWindowsMica && (merged() || hover()),
           "bg-background-stronger": !isWindowsMica && !merged() && !hover(),
+          "bg-transparent": isWindowsMica,
           "flex-1 min-w-0": panelProps.mobile,
           "max-w-full overflow-hidden": panelProps.mobile,
         }}
         style={
           isWindowsMica
-            ? { background: "rgba(255,255,255,0.96)", backdropFilter: "blur(12px)", width: panelProps.mobile ? undefined : `${panel()}px` }
+            ? { background: "transparent", "background-color": "transparent", width: panelProps.mobile ? undefined : `${panel()}px` }
             : { width: panelProps.mobile ? undefined : `${panel()}px` }
         }
       >
@@ -2270,7 +2271,7 @@ export default function LegacyLayout(props: ParentProps) {
         "bg-background-base": !isWindowsMica,
         "bg-transparent": isWindowsMica,
       }}
-      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", borderRadius: "8px", overflow: "hidden" } : undefined}
+      style={isWindowsMica ? { background: "transparent", "background-color": "transparent", "border-radius": "8px", overflow: "hidden" } : undefined}
     >
       {autoselecting() ?? ""}
       <Titlebar update={titlebarUpdate} />
@@ -2375,7 +2376,7 @@ export default function LegacyLayout(props: ParentProps) {
                   "bg-background-base": !isWindowsMica,
                   "bg-transparent": isWindowsMica,
                 }}
-                style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent" } : undefined}
+                style={isWindowsMica ? { background: "transparent", "background-color": "transparent" } : undefined}
               >
                 <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
                   {props.children}

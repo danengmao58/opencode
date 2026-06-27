@@ -42,11 +42,11 @@ export default function NewLayout(props: ParentProps) {
         "bg-v2-background-bg-deep": !isWindowsMica,
         "bg-transparent": isWindowsMica,
       }}
-      style={isWindowsMica ? { background: "transparent", backgroundColor: "transparent", borderRadius: "8px", overflow: "hidden", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" } : {
-        borderRadius: "8px",
+      style={isWindowsMica ? { background: "transparent", "background-color": "transparent", "border-radius": "8px", overflow: "hidden", "padding-top": "env(safe-area-inset-top, 0px)", "padding-bottom": "env(safe-area-inset-bottom, 0px)" } : {
+        "border-radius": "8px",
         overflow: "hidden",
-        paddingTop: "env(safe-area-inset-top, 0px)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        "padding-top": "env(safe-area-inset-top, 0px)",
+        "padding-bottom": "env(safe-area-inset-bottom, 0px)",
       }}
     >
       <Titlebar update={update} />

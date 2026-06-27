@@ -4,7 +4,7 @@ export function getWindowsRoundedCornersConfig() {
   return {
     roundedCorners: true,
     frame: false,
-    transparent: true,
+    transparent: false,
     backgroundColor: "#00000000",
     backgroundMaterial: "mica" as const,
   }

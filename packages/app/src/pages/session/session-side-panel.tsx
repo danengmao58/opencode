@@ -225,15 +225,15 @@ export function SessionSidePanel(props: {
         inert={!open()}
         classList={{
           "relative min-w-0 h-full flex shrink-0 overflow-hidden": true,
-          "bg-background-base": !isWindowsMica,
-          "bg-transparent": isWindowsMica,
+          "bg-background-base": !isWindowsMica(),
+          "bg-transparent": isWindowsMica(),
           "pointer-events-none": !open(),
           "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
             !props.size.active() && !props.reviewSnap,
           "rounded-[10px] shadow-[var(--v2-elevation-raised)] overflow-hidden": settings.general.newLayoutDesigns(),
           "flex-1": reviewOpen(),
         }}
-        style={isWindowsMica ? { width: panelWidth(), background: "transparent", backgroundColor: "transparent" } : { width: panelWidth() }}
+        style={isWindowsMica() ? { width: panelWidth(), background: "transparent", "background-color": "transparent" } : { width: panelWidth() }}
       >
         <Show when={open()}>
           <div
@@ -247,8 +247,8 @@ export function SessionSidePanel(props: {
               inert={!reviewOpen()}
               classList={{
                 "relative min-w-0 h-full flex-1 overflow-hidden": true,
-                "bg-background-base": !isWindowsMica,
-                "bg-transparent": isWindowsMica,
+                "bg-background-base": !isWindowsMica(),
+                "bg-transparent": isWindowsMica(),
                 "pointer-events-none": !reviewOpen(),
               }}
             >

@@ -19,6 +19,7 @@ import { useCommand } from "@/context/command"
 import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
+import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
@@ -57,6 +58,7 @@ export function SessionSidePanel(props: {
   const sync = useSync()
   const file = useFile()
   const language = useLanguage()
+  const platform = usePlatform()
   const command = useCommand()
   const dialog = useDialog()
   const { sessionKey, tabs, view, params } = useSessionLayout()
@@ -73,6 +75,7 @@ export function SessionSidePanel(props: {
         opened: layout.fileTree.opened(),
       }),
   )
+  const isWindowsMica = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
   const open = createMemo(() => reviewOpen() || fileOpen())
   const reviewTab = createMemo(() => isDesktop())
   const panelWidth = createMemo(() => {
@@ -216,18 +219,21 @@ export function SessionSidePanel(props: {
     <Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id)}>
       <aside
         id="review-panel"
+        data-component="session-side-panel"
         aria-label={language.t("session.panel.reviewAndFiles")}
         aria-hidden={!open()}
         inert={!open()}
-        class="relative min-w-0 h-full flex shrink-0 overflow-hidden bg-background-base"
         classList={{
+          "relative min-w-0 h-full flex shrink-0 overflow-hidden": true,
+          "bg-background-base": !isWindowsMica(),
+          "bg-transparent": isWindowsMica(),
           "pointer-events-none": !open(),
           "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
             !props.size.active() && !props.reviewSnap,
           "rounded-[10px] shadow-[var(--v2-elevation-raised)] overflow-hidden": settings.general.newLayoutDesigns(),
           "flex-1": reviewOpen(),
         }}
-        style={{ width: panelWidth() }}
+        style={isWindowsMica() ? { width: panelWidth(), background: "transparent", "background-color": "transparent" } : { width: panelWidth() }}
       >
         <Show when={open()}>
           <div
@@ -239,12 +245,14 @@ export function SessionSidePanel(props: {
             <div
               aria-hidden={!reviewOpen()}
               inert={!reviewOpen()}
-              class="relative min-w-0 h-full flex-1 overflow-hidden bg-background-base"
               classList={{
+                "relative min-w-0 h-full flex-1 overflow-hidden": true,
+                "bg-background-base": !isWindowsMica(),
+                "bg-transparent": isWindowsMica(),
                 "pointer-events-none": !reviewOpen(),
               }}
             >
-              <div class="size-full min-w-0 h-full bg-background-base">
+              <div class={isWindowsMica() ? "size-full min-w-0 h-full bg-transparent" : "size-full min-w-0 h-full bg-background-base"}>
                 <DragDropProvider
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}

@@ -1976,18 +1976,26 @@ export default function LegacyLayout(props: ParentProps) {
 
     return (
       <div
+        data-component="sidebar-panel"
         classList={{
           "flex flex-col min-h-0 min-w-0 box-border rounded-tl-[12px] px-3": true,
           "border border-b-0 border-border-weak-base": !merged(),
           "border-l border-t border-border-weaker-base": merged(),
-          "bg-background-base": merged() || hover(),
-          "bg-background-stronger": !merged() && !hover(),
+          "bg-background-base": !isWindowsMica && (merged() || hover()),
+          "bg-background-stronger": !isWindowsMica && !merged() && !hover(),
+          "bg-transparent": isWindowsMica,
           "flex-1 min-w-0": panelProps.mobile,
           "max-w-full overflow-hidden": panelProps.mobile,
         }}
-        style={{
-          width: panelProps.mobile ? undefined : `${panel()}px`,
-        }}
+        style={
+          isWindowsMica
+            ? {
+                background: merged() && !hover() ? "transparent" : "rgba(255, 255, 255, 0.92)",
+                "background-color": merged() && !hover() ? "transparent" : "rgba(255, 255, 255, 0.92)",
+                width: panelProps.mobile ? undefined : `${panel()}px`,
+              }
+            : { width: panelProps.mobile ? undefined : `${panel()}px` }
+        }
       >
         <Show
           when={project()}
@@ -2257,8 +2265,18 @@ export default function LegacyLayout(props: ParentProps) {
     />
   )
 
+  const isWindowsMica = platform.platform === "desktop" && platform.os === "windows"
+
   return (
-    <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
+    <div
+      data-component="app-shell"
+      classList={{
+        "relative flex-1 min-h-0 min-w-0 flex flex-col select-none overflow-hidden rounded-[8px] [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text": true,
+        "bg-background-base": !isWindowsMica,
+        "bg-transparent": isWindowsMica,
+      }}
+      style={isWindowsMica ? { background: "transparent", "background-color": "transparent", "border-radius": "8px", overflow: "hidden" } : undefined}
+    >
       {autoselecting() ?? ""}
       <Titlebar update={titlebarUpdate} />
       <Show when={updateVersion() !== undefined}>
@@ -2333,7 +2351,8 @@ export default function LegacyLayout(props: ParentProps) {
                 aria-label={language.t("sidebar.nav.projectsAndSessions")}
                 data-component="sidebar-nav-mobile"
                 classList={{
-                  "@container fixed top-10 bottom-0 left-0 z-50 w-full max-w-[400px] overflow-hidden border-r border-border-weaker-base bg-background-base transition-transform duration-200 ease-out": true,
+                  "@container fixed top-10 bottom-0 left-0 z-50 w-full max-w-[400px] overflow-hidden border-r border-border-weaker-base transition-transform duration-200 ease-out": true,
+                  "bg-[rgba(255,255,255,0.92)] backdrop-blur-[12px]": true,
                   "translate-x-0": layout.mobileSidebar.opened(),
                   "-translate-x-full": !layout.mobileSidebar.opened(),
                 }}
@@ -2357,8 +2376,11 @@ export default function LegacyLayout(props: ParentProps) {
             >
               <main
                 classList={{
-                  "size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base bg-background-base xl:border-l xl:rounded-tl-[12px]": true,
+                  "size-full overflow-hidden overflow-x-hidden flex flex-col items-start contain-strict border border-border-weak-base rounded-[12px]": true,
+                  "bg-background-base": !isWindowsMica,
+                  "bg-transparent": isWindowsMica,
                 }}
+                style={isWindowsMica ? { background: "transparent", "background-color": "transparent" } : undefined}
               >
                 <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
                   {props.children}

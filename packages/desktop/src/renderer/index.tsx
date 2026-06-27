@@ -317,10 +317,15 @@ render(() => {
     menuTrigger = (id) => cmd.trigger(id)
 
     const theme = useTheme()
+    const isWindowsMica = platform.platform === "desktop" && platform.os === "windows"
 
     createEffect(() => {
       theme.themeId()
       theme.mode()
+      if (isWindowsMica) {
+        void window.api.setBackgroundColor("#00000000").catch(() => undefined)
+        return
+      }
       const bg = getComputedStyle(document.documentElement).getPropertyValue("--background-base").trim()
       if (bg) {
         void window.api.setBackgroundColor(bg)
@@ -332,8 +337,9 @@ render(() => {
 
   function App() {
     const wslServers = useWslServers()
+    const splashClass = platform.platform === "desktop" && platform.os === "windows" ? "bg-transparent" : "bg-background-base"
     const splash = (
-      <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
+      <div class={`h-dvh w-screen flex flex-col items-center justify-center ${splashClass}`}>
         <Splash class="w-16 h-20 opacity-50 animate-pulse" />
       </div>
     )
@@ -378,6 +384,27 @@ render(() => {
 
   onMount(() => {
     document.addEventListener("click", handleClick)
+    if (platform.platform === "desktop" && platform.os === "windows") {
+      const radius = "8px"
+      document.documentElement.dataset.backgroundMaterial = "mica"
+      document.documentElement.style.background = "transparent"
+      document.documentElement.style.backgroundColor = "transparent"
+      document.documentElement.style.borderRadius = radius
+      document.body.style.background = "transparent"
+      document.body.style.backgroundColor = "transparent"
+      document.body.style.borderRadius = radius
+      document.body.style.overflow = "hidden"
+      const root = document.getElementById("root")
+      if (root) {
+        root.style.background = "transparent"
+        root.style.backgroundColor = "transparent"
+        root.style.borderRadius = radius
+        root.style.overflow = "hidden"
+        root.style.border = "1px solid rgba(0, 0, 0, 0.12)"
+        root.style.boxSizing = "border-box"
+      }
+      void window.api.setBackgroundMaterial(true).catch(() => undefined)
+    }
     onCleanup(() => {
       document.removeEventListener("click", handleClick)
     })
@@ -385,7 +412,10 @@ render(() => {
 
   return (
     <PlatformProvider value={platform}>
-      <AppBaseProviders locale={locale.latest}>
+      <AppBaseProviders
+        locale={locale.latest}
+        defaultTheme={platform.platform === "desktop" && platform.os === "windows" ? "glass" : undefined}
+      >
         <Show when={true}>{(_) => <App />}</Show>
       </AppBaseProviders>
     </PlatformProvider>

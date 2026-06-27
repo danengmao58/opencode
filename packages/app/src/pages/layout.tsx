@@ -1989,7 +1989,11 @@ export default function LegacyLayout(props: ParentProps) {
         }}
         style={
           isWindowsMica
-            ? { background: "transparent", "background-color": "transparent", width: panelProps.mobile ? undefined : `${panel()}px` }
+            ? {
+                background: merged() && !hover() ? "transparent" : "rgba(255, 255, 255, 0.92)",
+                "background-color": merged() && !hover() ? "transparent" : "rgba(255, 255, 255, 0.92)",
+                width: panelProps.mobile ? undefined : `${panel()}px`,
+              }
             : { width: panelProps.mobile ? undefined : `${panel()}px` }
         }
       >

@@ -317,8 +317,8 @@ export const SortableWorkspace = (props: {
   const active = createMemo(() => pathKey(props.ctx.currentDir()) === pathKey(props.directory))
   const workspaceValue = createMemo(() => {
     const branch = workspaceStore.vcs?.branch
-    const name = branch ?? getFilename(props.directory)
-    return props.ctx.workspaceName(props.directory, props.project.id, branch) ?? name
+    const fallback = branch ?? getFilename(props.directory)
+    return props.ctx.workspaceName(props.directory, props.project.id, branch) ?? props.project.name ?? fallback
   })
   const open = createMemo(() => props.ctx.workspaceExpanded(props.directory, local()))
   const boot = createMemo(() => open() || active())

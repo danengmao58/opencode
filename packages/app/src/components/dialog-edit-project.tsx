@@ -80,13 +80,18 @@ export function DialogEditProject(props: { project: LocalProject; server: Server
       const start = store.startup.trim()
 
       if (props.project.id && props.project.id !== "global") {
-        await serverSDK().client.project.update({
+        const updated = await serverSDK().client.project.update({
           projectID: props.project.id,
           directory: props.project.worktree,
           name,
           icon: { color: store.color || "", override: store.iconOverride || "" },
           commands: { start },
         })
+        const projects = serverSync().data.project
+        const idx = projects.findIndex((p) => p.id === props.project.id)
+        if (idx >= 0) {
+          serverSync().set("project", idx, { ...projects[idx], ...updated })
+        }
         serverSync().project.icon(props.project.worktree, store.iconOverride || undefined)
         dialog.close()
         return
@@ -97,6 +102,7 @@ export function DialogEditProject(props: { project: LocalProject; server: Server
         icon: { color: store.color || undefined, override: store.iconOverride || undefined },
         commands: { start: start || undefined },
       })
+      serverSync().project.icon(props.project.worktree, store.iconOverride || undefined)
       dialog.close()
     },
   }))

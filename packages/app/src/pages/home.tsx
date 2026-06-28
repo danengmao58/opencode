@@ -302,6 +302,7 @@ export function NewHome() {
 
   function selectProject(conn: ServerConnection.Any, directory: string) {
     const key = ServerConnection.key(conn)
+    if (global.servers.health[key]?.healthy === false) return
     if (
       !global
         .ensureServerCtx(conn)
@@ -468,7 +469,7 @@ export function NewHome() {
                 when={groups().length > 0}
                 fallback={<HomeSessionsEmpty onNewSession={newSessionProject() ? openNewSession : undefined} />}
               >
-                <div class="flex flex-col gap-6 pt-3 pr-3">
+                <div class="flex flex-col gap-6 pt-3 pr-3 pb-16">
                   <For each={groups()}>
                     {(group, index) => (
                       <div class="flex min-w-0 flex-col gap-4">
@@ -767,15 +768,18 @@ function HomeProjectRow(props: {
   clearNotifications: (server: ServerConnection.Any, project: LocalProject) => void
   language: ReturnType<typeof useLanguage>
 }) {
+  const global = useGlobal()
+  const serverUnreachable = () => global.servers.health[ServerConnection.key(props.server)]?.healthy === false
   const [state, setState] = createStore({ menuOpen: false })
   return (
     <div class="group/project relative flex h-7 min-w-0 items-center rounded-[6px]">
       <button
         type="button"
         data-component="home-project-row"
-        class={`${HOME_PROJECT_NAV_ROW} pr-16`}
+        class={`${HOME_PROJECT_NAV_ROW} pr-16 disabled:opacity-60`}
         data-selected={props.selected ? "" : undefined}
         aria-current={props.selected ? "page" : undefined}
+        disabled={serverUnreachable()}
         onClick={() => props.selectProject(props.server, props.project.worktree)}
       >
         <HomeProjectAvatar project={props.project} />
@@ -965,7 +969,7 @@ function HomeSessionSearch(props: {
             style={{
               top: "-6px",
               left: "-6px",
-              width: "calc(100% + 14px)",
+              width: "calc(100% + 12px)",
             }}
           >
             <div class="flex flex-col pt-9">

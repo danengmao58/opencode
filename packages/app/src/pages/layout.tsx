@@ -156,6 +156,7 @@ export default function LegacyLayout(props: ParentProps) {
     sizing: false,
     peek: undefined as string | undefined,
     peeked: false,
+    debugTools: true,
   })
 
   const updateVersion = () => {
@@ -2266,7 +2267,14 @@ export default function LegacyLayout(props: ParentProps) {
       style={isWindowsMica ? { background: "transparent", "background-color": "transparent", "border-radius": "8px", overflow: "hidden" } : undefined}
     >
       {autoselecting() ?? ""}
-      <Titlebar update={titlebarUpdate} />
+      <Titlebar
+        update={titlebarUpdate}
+        debugTools={
+          import.meta.env.DEV && import.meta.env.VITE_DISABLE_DEBUG_BAR !== "1"
+            ? { visible: state.debugTools, toggle: () => setState("debugTools", (value) => !value) }
+            : undefined
+        }
+      />
       <Show when={updateVersion() !== undefined}>
         <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} language={language} />
       </Show>
@@ -2415,7 +2423,7 @@ export default function LegacyLayout(props: ParentProps) {
             </div>
           </div>
         </div>
-        {import.meta.env.DEV && import.meta.env.VITE_DISABLE_DEBUG_BAR !== "1" && <DebugBar />}
+        {import.meta.env.DEV && import.meta.env.VITE_DISABLE_DEBUG_BAR !== "1" && state.debugTools && <DebugBar />}
       </div>
       <TabsInfoPopup />
       <ToastRegion v2={false} />

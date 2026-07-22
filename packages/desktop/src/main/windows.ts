@@ -219,15 +219,7 @@ export function createMainWindow(id: string = randomUUID()) {
           titleBarStyle: "hidden" as const,
           titleBarOverlay: overlay({ mode }),
         }
-      : process.platform === "darwin"
-        ? {
-            titleBarStyle: "hidden" as const,
-            trafficLightPosition: { x: 12, y: 14 },
-            backgroundColor: backgroundColor ?? defaultBackgroundColor(),
-          }
-        : {
-            backgroundColor: backgroundColor ?? defaultBackgroundColor(),
-          }),
+      : {}),
     webPreferences: {
       preload: join(root, "../preload/index.js"),
       contextIsolation: true,
